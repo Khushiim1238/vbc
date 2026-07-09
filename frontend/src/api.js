@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "https://vbc-backend-6qoj.onrender.com";
 
 export const api = {
     // Devices

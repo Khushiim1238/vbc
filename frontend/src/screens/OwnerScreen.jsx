@@ -23,11 +23,8 @@ export default function OwnerScreen() {
       ordersData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       setOrders(ordersData);
       
-      const res = await fetch('http://localhost:8000/devices');
-      if (res.ok) {
-        const devicesData = await res.json();
-        setDevices(devicesData);
-      }
+      const devicesData = await api.getDevices();
+      setDevices(devicesData);
     } catch (e) {
       console.error(e);
     }
