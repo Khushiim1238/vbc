@@ -1,0 +1,67 @@
+-- Schema for Karigar Rewards System
+
+-- 1. Karigars Table
+CREATE TABLE public.karigars (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL UNIQUE,
+    total_points INTEGER NOT NULL DEFAULT 0,
+    registered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 2. Orders Table
+CREATE TABLE public.orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    karigar_id UUID NOT NULL REFERENCES public.karigars(id) ON DELETE CASCADE,
+    bags_ordered INTEGER NOT NULL,
+    order_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    entered_by TEXT NOT NULL,
+    points_awarded INTEGER NOT NULL DEFAULT 0,
+    whatsapp_status TEXT DEFAULT 'pending',
+    whatsapp_message_id TEXT
+);
+
+-- 3. Points Ledger Table
+CREATE TABLE public.points_ledger (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    karigar_id UUID NOT NULL REFERENCES public.karigars(id) ON DELETE CASCADE,
+    order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL,
+    points_change INTEGER NOT NULL,
+    balance_after INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 4. Function & Trigger to auto-update total_points in karigars
+CREATE OR REPLACE FUNCTION update_karigar_total_points()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update the total_points in karigars table
+    UPDATE public.karigars
+    SET total_points = NEW.balance_after
+    WHERE id = NEW.karigar_id;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_karigar_total_points
+AFTER INSERT ON public.points_ledger
+FOR EACH ROW
+EXECUTE FUNCTION update_karigar_total_points();
+
+-- Set up Row Level Security (RLS)
+-- For this Phase 1, we will allow all access for simplicity (assuming internal use), 
+-- but in production, we should lock this down.
+ALTER TABLE public.karigars ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.points_ledger ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow anonymous read access to karigars" ON public.karigars FOR SELECT USING (true);
+CREATE POLICY "Allow anonymous insert access to karigars" ON public.karigars FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anonymous update access to karigars" ON public.karigars FOR UPDATE USING (true);
+
+CREATE POLICY "Allow anonymous read access to orders" ON public.orders FOR SELECT USING (true);
+CREATE POLICY "Allow anonymous insert access to orders" ON public.orders FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow anonymous read access to points_ledger" ON public.points_ledger FOR SELECT USING (true);
+CREATE POLICY "Allow anonymous insert access to points_ledger" ON public.points_ledger FOR INSERT WITH CHECK (true);
