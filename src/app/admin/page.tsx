@@ -96,7 +96,7 @@ export default function AdminPage() {
           if (w.sariya > 0) orderDetails.push(`सरिया: ${w.sariya}`);
           const orderDetailsText = orderDetails.join(', ') || 'ऑर्डर';
           
-          const msg = `वर्धमान ग्रुप 🙏\n\nनमस्ते ${w.name} जी,\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetailsText}\n\n🎉 आपको ${w.pointsAwarded} पॉइंट(s) मिले हैं!\n⭐ कुल पॉइंट्स: ${w.totalPoints}\n\nधन्यवाद!`;
+          const msg = `वर्धमान ग्रुप 🙏\n\nनमस्ते ${w.name} जी,\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetailsText}\n\n🏷️ कूपन नंबर (Coupon No): ${w.couponCode}\n\n🎉 आपको ${w.pointsAwarded} पॉइंट(s) मिले हैं!\n⭐ कुल पॉइंट्स: ${w.totalPoints}\n\nधन्यवाद!`;
           
           let phone = w.phone.replace(/\D/g, '');
           if (phone.length === 10) phone = '91' + phone;

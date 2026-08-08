@@ -20,7 +20,8 @@ CREATE TABLE public.orders (
     entered_by TEXT NOT NULL,
     points_awarded INTEGER NOT NULL DEFAULT 0,
     whatsapp_status TEXT DEFAULT 'pending',
-    whatsapp_message_id TEXT
+    whatsapp_message_id TEXT,
+    coupon_number SERIAL
 );
 
 -- 3. Points Ledger Table
@@ -64,6 +65,11 @@ CREATE POLICY "Allow anonymous update access to karigars" ON public.karigars FOR
 
 CREATE POLICY "Allow anonymous read access to orders" ON public.orders FOR SELECT USING (true);
 CREATE POLICY "Allow anonymous insert access to orders" ON public.orders FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anonymous update access to orders" ON public.orders FOR UPDATE USING (true);
+
+-- Enable Realtime for orders and karigars
+ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.karigars;
 
 CREATE POLICY "Allow anonymous read access to points_ledger" ON public.points_ledger FOR SELECT USING (true);
 CREATE POLICY "Allow anonymous insert access to points_ledger" ON public.points_ledger FOR INSERT WITH CHECK (true);

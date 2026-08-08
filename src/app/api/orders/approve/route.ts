@@ -65,7 +65,8 @@ export async function POST(request: Request) {
         bags: order.bags_ordered,
         sariya: order.sariya_ordered,
         pointsAwarded: points_awarded,
-        totalPoints: balance_after
+        totalPoints: balance_after,
+        couponCode: order.coupon_number?.toString() || order.id.slice(0, 6).toUpperCase()
       }
     });
   } catch (error) {
