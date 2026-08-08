@@ -15,6 +15,7 @@ interface Order {
   id: string;
   karigar_id: string;
   bags_ordered: number;
+  sariya_ordered: number;
   order_time: string;
   entered_by: string;
   points_awarded: number;
@@ -149,7 +150,12 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <p className="text-sm text-slate-600 dark:text-slate-300">
-                    Ordered <span className="font-medium text-slate-900 dark:text-white">{o.bags_ordered} bags</span>
+                    Ordered <span className="font-medium text-slate-900 dark:text-white">
+                      {[
+                        o.bags_ordered ? `${o.bags_ordered} bags` : null,
+                        o.sariya_ordered ? `${o.sariya_ordered} sariya` : null
+                      ].filter(Boolean).join(' & ')}
+                    </span>
                   </p>
                   {o.points_awarded > 0 && (
                     <div className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 inline-block px-2 py-1 rounded-md">

@@ -13,7 +13,9 @@ CREATE TABLE public.karigars (
 CREATE TABLE public.orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     karigar_id UUID NOT NULL REFERENCES public.karigars(id) ON DELETE CASCADE,
-    bags_ordered INTEGER NOT NULL,
+    bags_ordered INTEGER NOT NULL DEFAULT 0,
+    sariya_ordered INTEGER NOT NULL DEFAULT 0,
+    status TEXT DEFAULT 'pending',
     order_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     entered_by TEXT NOT NULL,
     points_awarded INTEGER NOT NULL DEFAULT 0,
