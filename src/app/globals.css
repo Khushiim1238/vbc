@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
   --foreground-rgb: 15, 23, 42; /* slate-900 */
@@ -16,4 +14,16 @@ body {
       rgb(var(--background-end-rgb))
     );
   min-height: 100vh;
+}
+
+/* Hide number input arrows for Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Hide number input arrows for Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
 }

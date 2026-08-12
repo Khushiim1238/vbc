@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { CheckCircle, Clock, Loader2 } from "lucide-react";
+import { CheckCircle, Clock, Loader2, XCircle, CheckSquare, Activity, Trophy, Package, Users, LayoutDashboard, ListChecks, Lock } from "lucide-react";
 
 interface PendingOrder {
   id: string;
@@ -15,58 +15,118 @@ interface PendingOrder {
   karigars?: { name: string; phone: string };
 }
 
+interface Karigar {
+  id: string;
+  name: string;
+  phone: string;
+  total_points: number;
+}
+
+interface Order {
+  id: string;
+  karigar_id: string;
+  bags_ordered: number;
+  sariya_ordered: number;
+  order_time: string;
+  entered_by: string;
+  points_awarded: number;
+  karigars?: { name: string };
+}
+
 export default function AdminPage() {
-  const [orders, setOrders] = useState<PendingOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+
+  const [activeTab, setActiveTab] = useState<'approvals' | 'dashboard'>('approvals');
+
+  // --- Admin Approvals State ---
+  const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [cancelProcessingId, setCancelProcessingId] = useState<string | null>(null);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [adminError, setAdminError] = useState<string | null>(null);
+
+  // --- Dashboard State ---
+  const [karigars, setKarigars] = useState<Karigar[]>([]);
+  const [dashboardOrders, setDashboardOrders] = useState<Order[]>([]);
+  
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPendingOrders();
+    const authTime = localStorage.getItem('vbc_admin_auth_time');
+    if (authTime) {
+      const now = new Date().getTime();
+      const storedTime = parseInt(authTime, 10);
+      const hours24 = 24 * 60 * 60 * 1000;
+      if (now - storedTime < hours24) {
+        setIsAuthenticated(true);
+      } else {
+        localStorage.removeItem('vbc_admin_auth_time');
+      }
+    }
+    fetchData();
 
-    // Set up Realtime Subscription for new orders
-    const orderSub = supabase
+    // Setup Subscriptions
+    const adminOrderSub = supabase
       .channel('admin-orders-channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async (payload) => {
-        // We only care about pending orders
         if (payload.new.status === 'pending') {
-          // Fetch the joined name and phone for the new order
-          const { data: karigarData } = await supabase
-            .from('karigars')
-            .select('name, phone')
-            .eq('id', payload.new.karigar_id)
-            .single();
-            
+          const { data: karigarData } = await supabase.from('karigars').select('name, phone').eq('id', payload.new.karigar_id).single();
           const newOrder = { ...payload.new, karigars: karigarData } as PendingOrder;
-          
-          setOrders(prev => {
-            // Check if it already exists to prevent duplicates
+          setPendingOrders(prev => {
             if (prev.some(o => o.id === newOrder.id)) return prev;
-            // Add new order at the top
             return [newOrder, ...prev];
           });
         }
       })
       .subscribe();
 
+    const dashKarigarSub = supabase
+      .channel('karigars-channel')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'karigars' }, payload => {
+        setKarigars(prev => {
+          const updated = [...prev];
+          const index = updated.findIndex(k => k.id === payload.new.id);
+          if (index !== -1) updated[index] = payload.new as Karigar;
+          return updated.sort((a, b) => b.total_points - a.total_points);
+        });
+      })
+      .subscribe();
+
+    const dashOrderSub = supabase
+      .channel('dash-orders-channel')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async payload => {
+        const { data } = await supabase.from('karigars').select('name').eq('id', payload.new.karigar_id).single();
+        const newOrder = { ...payload.new, karigars: data } as Order;
+        setDashboardOrders(prev => [newOrder, ...prev].slice(0, 20));
+      })
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(orderSub);
+      supabase.removeChannel(adminOrderSub);
+      supabase.removeChannel(dashKarigarSub);
+      supabase.removeChannel(dashOrderSub);
     };
   }, []);
 
-  const fetchPendingOrders = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, karigars(name, phone)")
-        .eq("status", "pending")
-        .order("order_time", { ascending: false });
-        
-      if (error) throw error;
-      setOrders((data as any) || []);
+      const [pendingRes, karigarsRes, ordersRes] = await Promise.all([
+        supabase.from("orders").select("*, karigars(name, phone)").eq("status", "pending").order("order_time", { ascending: false }),
+        supabase.from("karigars").select("*").order("total_points", { ascending: false }),
+        supabase.from("orders").select("*, karigars(name)").order("order_time", { ascending: false }).limit(20)
+      ]);
+
+      if (pendingRes.error) throw pendingRes.error;
+      
+      setPendingOrders((pendingRes.data as any) || []);
+      if (karigarsRes.data) setKarigars(karigarsRes.data);
+      if (ordersRes.data) setDashboardOrders(ordersRes.data as any);
+      
     } catch (err: any) {
-      console.error("Failed to fetch pending orders", err);
-      setErrorMsg(err?.message || JSON.stringify(err) || "Failed to fetch orders. Did you run the SQL migration?");
+      console.error("Failed to fetch data", err);
+      setAdminError(err?.message || JSON.stringify(err) || "Failed to fetch data.");
     } finally {
       setLoading(false);
     }
@@ -84,19 +144,22 @@ export default function AdminPage() {
       
       const data = await res.json();
       if (data.success) {
-        // Remove from list
-        setOrders(prev => prev.filter(o => o.id !== orderId));
+        setPendingOrders(prev => prev.filter(o => o.id !== orderId));
+        setSelectedOrderIds(prev => prev.filter(id => id !== orderId));
 
-        // 1-Click WhatsApp Magic (100% Free)
         if (data.whatsapp_data && data.whatsapp_data.pointsAwarded > 0) {
           const w = data.whatsapp_data;
           
-          const orderDetails = [];
-          if (w.bags > 0) orderDetails.push(`सीमेंट: ${w.bags} बैग`);
-          if (w.sariya > 0) orderDetails.push(`सरिया: ${w.sariya}`);
-          const orderDetailsText = orderDetails.join(', ') || 'ऑर्डर';
-          
-          const msg = `वर्धमान ग्रुप 🙏\n\nनमस्ते ${w.name} जी,\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetailsText}\n\n🏷️ कूपन नंबर (Coupon No): ${w.couponCode}\n\n🎉 आपको ${w.pointsAwarded} पॉइंट(s) मिले हैं!\n⭐ कुल पॉइंट्स: ${w.totalPoints}\n\nधन्यवाद!`;
+          let orderDetails = "";
+          if (w.bags > 0 && w.sariya > 0) {
+            orderDetails = `सीमेंट: ${w.bags} बैग\nसरिया: ₹${w.sariya}`;
+          } else if (w.bags > 0) {
+            orderDetails = `सीमेंट: ${w.bags} बैग`;
+          } else if (w.sariya > 0) {
+            orderDetails = `सरिया: ₹${w.sariya}`;
+          }
+
+          const msg = `नमस्ते ${w.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिला है कूपन नंबर : ${w.pointsAwarded}\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\nधन्यवाद! वर्धमान ग्रुप टोंक`;
           
           let phone = w.phone.replace(/\D/g, '');
           if (phone.length === 10) phone = '91' + phone;
@@ -114,99 +177,398 @@ export default function AdminPage() {
     }
   };
 
+  const handleCancel = async (orderId: string) => {
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+    
+    setCancelProcessingId(orderId);
+    try {
+      const res = await fetch("/api/orders/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: orderId }),
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        setPendingOrders(prev => prev.filter(o => o.id !== orderId));
+        setSelectedOrderIds(prev => prev.filter(id => id !== orderId));
+      } else {
+        alert(data.error || "Failed to cancel order");
+      }
+    } catch (err) {
+      alert("Something went wrong");
+    } finally {
+      setCancelProcessingId(null);
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedOrderIds.length === 0) return;
+    if (!window.confirm(`Approve ${selectedOrderIds.length} selected orders?\nNote: Your browser might block multiple WhatsApp popups. You may need to click 'Allow popups' for this site.`)) return;
+
+    setIsBulkProcessing(true);
+    let successCount = 0;
+
+    for (const orderId of selectedOrderIds) {
+      try {
+        const res = await fetch("/api/orders/approve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order_id: orderId }),
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          successCount++;
+          setPendingOrders(prev => prev.filter(o => o.id !== orderId));
+          
+          if (data.whatsapp_data && data.whatsapp_data.pointsAwarded > 0) {
+            const w = data.whatsapp_data;
+            
+            let orderDetails = "";
+            if (w.bags > 0 && w.sariya > 0) {
+              orderDetails = `सीमेंट: ${w.bags} बैग\nसरिया: ₹${w.sariya}`;
+            } else if (w.bags > 0) {
+              orderDetails = `सीमेंट: ${w.bags} बैग`;
+            } else if (w.sariya > 0) {
+              orderDetails = `सरिया: ₹${w.sariya}`;
+            }
+
+            const msg = `नमस्ते ${w.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिला है कूपन नंबर : ${w.pointsAwarded}\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\nधन्यवाद! वर्धमान ग्रुप टोंक`;
+            
+            let phone = w.phone.replace(/\D/g, '');
+            if (phone.length === 10) phone = '91' + phone;
+            const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+          }
+        }
+      } catch (err) {
+        console.error("Bulk approve failed for order", orderId, err);
+      }
+      await new Promise(r => setTimeout(r, 600));
+    }
+    
+    setSelectedOrderIds([]);
+    setIsBulkProcessing(false);
+    
+    if (successCount > 0) {
+      alert(`Bulk approval complete. ${successCount} orders approved.`);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedOrderIds.length === pendingOrders.length) {
+      setSelectedOrderIds([]);
+    } else {
+      setSelectedOrderIds(pendingOrders.map(o => o.id));
+    }
+  };
+
+  const toggleSelectOrder = (id: string) => {
+    setSelectedOrderIds(prev => 
+      prev.includes(id) ? prev.filter(orderId => orderId !== id) : [...prev, id]
+    );
+  };
+
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">Loading pending entries...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">Loading data...</div>;
+  }
+
+  const totalPointsGiven = karigars.reduce((acc, k) => acc + k.total_points, 0);
+  const totalBagsOrdered = dashboardOrders.reduce((acc, o) => acc + o.bags_ordered, 0);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100 max-w-sm w-full text-center animate-in fade-in zoom-in-95 duration-300">
+          <div className="w-16 h-16 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Admin Access</h2>
+          <p className="text-slate-500 mb-8">Please enter the Admin PIN</p>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (passwordInput === "1971") {
+              setIsAuthenticated(true);
+              localStorage.setItem('vbc_admin_auth_time', new Date().getTime().toString());
+            } else {
+              alert("Incorrect PIN");
+              setPasswordInput("");
+            }
+          }}>
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              className="w-full text-center text-3xl tracking-[0.5em] p-4 bg-slate-50 border border-transparent rounded-2xl mb-6 focus:outline-none focus:bg-white focus:border-slate-500 focus:ring-4 focus:ring-slate-500/10 transition-all font-mono"
+              placeholder="••••"
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-medium transition-all shadow-lg shadow-slate-800/20 active:scale-95"
+            >
+              Unlock Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 md:p-12 text-slate-900">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <main className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-900 pb-24">
+      <div className="max-w-7xl mx-auto space-y-8">
         
-        {errorMsg && (
+        {adminError && activeTab === 'approvals' && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
             <strong className="font-bold">Error loading data! </strong>
-            <span className="block sm:inline">{errorMsg}</span>
-            <p className="mt-2 text-sm">Did you forget to run the SQL migration command in Supabase?<br/><code>ALTER TABLE public.orders ADD COLUMN status TEXT DEFAULT 'pending';</code></p>
+            <span className="block sm:inline">{adminError}</span>
           </div>
         )}
         
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Approval</h1>
-          <p className="text-slate-500 mt-1">
-            Review and approve today's entries. Approved entries will instantly award points and send WhatsApp notifications.
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
+          <p className="text-slate-500 mt-1">Manage orders, approve points, and view performance.</p>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
-          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-amber-500" />
-            Pending Approvals ({orders.length})
-          </h2>
-          
-          {orders.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
-              No pending entries to review. You're all caught up!
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-slate-200 text-sm text-slate-500">
-                    <th className="pb-3 font-medium">Time</th>
-                    <th className="pb-3 font-medium">Karigar</th>
-                    <th className="pb-3 font-medium">Purchases</th>
-                    <th className="pb-3 font-medium text-right">Points to Award</th>
-                    <th className="pb-3 font-medium text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {orders.map((o) => (
-                    <tr key={o.id} className="text-sm">
-                      <td className="py-4 text-slate-500">
-                        {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        <div className="text-xs">{new Date(o.order_time).toLocaleDateString()}</div>
-                      </td>
-                      <td className="py-4">
-                        <div className="font-semibold">{o.karigars?.name || 'Unknown'}</div>
-                        <div className="text-xs text-slate-400">{o.karigars?.phone}</div>
-                      </td>
-                      <td className="py-4 font-medium text-slate-600">
-                        {[
-                          o.bags_ordered > 0 ? `${o.bags_ordered} bags` : null,
-                          o.sariya_ordered > 0 ? `${o.sariya_ordered} sariya` : null
-                        ].filter(Boolean).join(' & ')}
-                      </td>
-                      <td className="py-4 text-right">
-                        <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                          +{o.points_awarded}
-                        </span>
-                      </td>
-                      <td className="py-4 text-right">
-                        <button
-                          onClick={() => handleApprove(o.id)}
-                          disabled={processingId === o.id}
-                          className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                        >
-                          {processingId === o.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4" />
-                              Approve
-                            </>
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+        {/* Custom Tab Switcher */}
+        <div className="flex p-1 bg-slate-200/60 rounded-xl w-full max-w-sm mb-6">
+          <button
+            onClick={() => setActiveTab('approvals')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'approvals' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+          >
+            <ListChecks className="w-4 h-4" />
+            Pending Approvals {pendingOrders.length > 0 && <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">{pendingOrders.length}</span>}
+          </button>
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'dashboard' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            Dashboard
+          </button>
         </div>
+
+        {/* Approvals Tab */}
+        {activeTab === 'approvals' && (
+          <div className="bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Clock className="w-5 h-5 text-amber-500" />
+                Pending Approvals ({pendingOrders.length})
+              </h2>
+
+              {selectedOrderIds.length > 0 && (
+                <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-4">
+                  <span className="text-sm font-medium text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full">
+                    {selectedOrderIds.length} Selected
+                  </span>
+                  <button
+                    onClick={handleBulkApprove}
+                    disabled={isBulkProcessing}
+                    className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white px-4 py-2 rounded-xl font-medium transition-colors shadow-sm"
+                  >
+                    {isBulkProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckSquare className="w-4 h-4" />}
+                    Bulk Approve
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {pendingOrders.length === 0 ? (
+              <div className="text-center py-16 px-4">
+                <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-medium text-slate-900">You're all caught up!</h3>
+                <p className="text-slate-500 mt-1">No pending entries to review.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-sm text-slate-500 bg-slate-50/50">
+                      <th className="pb-3 pt-3 pl-4 w-12 rounded-tl-xl">
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                          checked={pendingOrders.length > 0 && selectedOrderIds.length === pendingOrders.length}
+                          onChange={toggleSelectAll}
+                        />
+                      </th>
+                      <th className="pb-3 pt-3 font-medium">Time</th>
+                      <th className="pb-3 pt-3 font-medium">Karigar</th>
+                      <th className="pb-3 pt-3 font-medium">Purchases</th>
+                      <th className="pb-3 pt-3 font-medium text-right">Points to Award</th>
+                      <th className="pb-3 pt-3 font-medium text-right pr-4 rounded-tr-xl">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {pendingOrders.map((o) => {
+                      const isSelected = selectedOrderIds.includes(o.id);
+                      return (
+                        <tr key={o.id} className={`text-sm transition-colors ${isSelected ? 'bg-emerald-50/40' : 'hover:bg-slate-50/50'}`}>
+                          <td className="py-4 pl-4">
+                            <input 
+                              type="checkbox" 
+                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                              checked={isSelected}
+                              onChange={() => toggleSelectOrder(o.id)}
+                            />
+                          </td>
+                          <td className="py-4 text-slate-500">
+                            {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            <div className="text-xs">{new Date(o.order_time).toLocaleDateString()}</div>
+                          </td>
+                          <td className="py-4">
+                            <div className="font-medium text-slate-900">{o.karigars?.name || 'Unknown'}</div>
+                            <div className="text-xs text-slate-400">{o.karigars?.phone}</div>
+                          </td>
+                          <td className="py-4 text-slate-600">
+                            {[
+                              o.bags_ordered > 0 ? `${o.bags_ordered} bags` : null,
+                              o.sariya_ordered > 0 ? `₹${o.sariya_ordered} sariya` : null
+                            ].filter(Boolean).join(' & ')}
+                          </td>
+                          <td className="py-4 text-right">
+                            <span className="font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
+                              +{o.points_awarded}
+                            </span>
+                          </td>
+                          <td className="py-4 pr-4 text-right flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleCancel(o.id)}
+                              disabled={cancelProcessingId === o.id || processingId === o.id || isBulkProcessing}
+                              className="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50"
+                            >
+                              {cancelProcessingId === o.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <XCircle className="w-4 h-4" />
+                                  <span className="hidden sm:inline">Cancel</span>
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleApprove(o.id)}
+                              disabled={processingId === o.id || cancelProcessingId === o.id || isBulkProcessing}
+                              className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50"
+                            >
+                              {processingId === o.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span className="hidden sm:inline">Approve</span>
+                                </>
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <StatCard title="Total Karigars" value={karigars.length} icon={Users} color="text-blue-500 bg-blue-50" />
+              <StatCard title="Points Distributed" value={totalPointsGiven} icon={Trophy} color="text-amber-500 bg-amber-50" />
+              <StatCard title="Recent Bags (Last 20)" value={totalBagsOrdered} icon={Package} color="text-emerald-500 bg-emerald-50" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Leaderboard */}
+              <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100">
+                <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-amber-500" />
+                  Karigar Leaderboard
+                </h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-sm text-slate-500 bg-slate-50/50">
+                        <th className="pb-3 pt-3 pl-4 font-medium rounded-tl-xl">Rank</th>
+                        <th className="pb-3 pt-3 font-medium">Name</th>
+                        <th className="pb-3 pt-3 font-medium">Phone</th>
+                        <th className="pb-3 pt-3 font-medium text-right pr-4 rounded-tr-xl">Total Points</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {karigars.map((k, i) => (
+                        <tr key={k.id} className="text-sm hover:bg-slate-50/50 transition-colors">
+                          <td className="py-4 pl-4 font-medium text-slate-400">#{i + 1}</td>
+                          <td className="py-4 font-medium text-slate-900">{k.name}</td>
+                          <td className="py-4 text-slate-500">{k.phone}</td>
+                          <td className="py-4 pr-4 text-right font-semibold text-amber-500">{k.total_points} ⭐</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Activity Feed */}
+              <div className="bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100 h-[600px] flex flex-col">
+                <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-sky-500" />
+                  Live Activity
+                </h2>
+                <div className="flex-1 overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-slate-200">
+                  {dashboardOrders.map((o) => (
+                    <div key={o.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:shadow-sm transition-shadow">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-medium text-slate-900">{o.karigars?.name || 'Unknown'}</span>
+                        <span className="text-xs text-slate-400">
+                          {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600">
+                        Ordered <span className="font-medium text-slate-900">
+                          {[
+                            o.bags_ordered ? `${o.bags_ordered} bags` : null,
+                            o.sariya_ordered ? `₹${o.sariya_ordered} sariya` : null
+                          ].filter(Boolean).join(' & ')}
+                        </span>
+                      </p>
+                      {o.points_awarded > 0 && (
+                        <div className="mt-2 text-xs font-medium text-emerald-600 bg-emerald-100/50 inline-block px-2 py-1 rounded-md">
+                          +{o.points_awarded} Points Awarded
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
       </div>
     </main>
+  );
+}
+
+function StatCard({ title, value, icon: Icon, color }: any) {
+  return (
+    <div className="bg-white p-6 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100 flex items-center gap-4">
+      <div className={`p-4 rounded-2xl ${color}`}>
+        <Icon className="w-8 h-8" />
+      </div>
+      <div>
+        <p className="text-sm font-medium text-slate-500">{title}</p>
+        <p className="text-3xl font-bold mt-1 text-slate-900">{value}</p>
+      </div>
+    </div>
   );
 }
