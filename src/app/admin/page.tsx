@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { CheckCircle, Clock, Loader2, XCircle, CheckSquare, Activity, Trophy, Package, Users, LayoutDashboard, ListChecks, Lock } from "lucide-react";
+import { CheckCircle, Clock, Loader2, XCircle, CheckSquare, Activity, Trophy, Package, Users, LayoutDashboard, ListChecks, Lock, Search, ChevronRight } from "lucide-react";
 
 interface PendingOrder {
   id: string;
@@ -48,7 +48,7 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
 
-  const [activeTab, setActiveTab] = useState<'approvals' | 'dashboard'>('approvals');
+  const [activeTab, setActiveTab] = useState<'approvals' | 'dashboard' | 'directory'>('approvals');
 
   // --- Admin Approvals State ---
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
@@ -61,6 +61,12 @@ export default function AdminPage() {
   // --- Dashboard State ---
   const [karigars, setKarigars] = useState<Karigar[]>([]);
   const [dashboardOrders, setDashboardOrders] = useState<Order[]>([]);
+  
+  // --- Directory State ---
+  const [directorySearch, setDirectorySearch] = useState("");
+  const [selectedKarigarDetails, setSelectedKarigarDetails] = useState<Karigar | null>(null);
+  const [karigarHistory, setKarigarHistory] = useState<Order[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   
   const [loading, setLoading] = useState(true);
 
@@ -213,6 +219,30 @@ export default function AdminPage() {
     }
   };
 
+  const fetchKarigarHistory = async (karigarId: string) => {
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('karigar_id', karigarId)
+        .eq('status', 'approved')
+        .order('order_time', { ascending: false });
+        
+      if (error) throw error;
+      setKarigarHistory((data as Order[]) || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleKarigarClick = (k: Karigar) => {
+    setSelectedKarigarDetails(k);
+    fetchKarigarHistory(k.id);
+  };
+
   const handleBulkApprove = async () => {
     if (selectedOrderIds.length === 0) return;
     if (!window.confirm(`Approve ${selectedOrderIds.length} selected orders?\nNote: Your browser might block multiple WhatsApp popups. You may need to click 'Allow popups' for this site.`)) return;
@@ -359,6 +389,13 @@ export default function AdminPage() {
           >
             <LayoutDashboard className="w-4 h-4" />
             Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('directory')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'directory' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+          >
+            <Search className="w-4 h-4" />
+            Directory
           </button>
         </div>
 
@@ -586,7 +623,7 @@ export default function AdminPage() {
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StatCard title="Total Karigars" value={karigars.length} icon={Users} color="text-blue-500 bg-blue-50" />
+              <StatCard title="Total Karigars" value={karigars.length} icon={Users} color="text-blue-500 bg-blue-50" action={() => setActiveTab('directory')} actionText="View Directory" />
               <StatCard title="Points Distributed" value={totalPointsGiven} icon={Trophy} color="text-amber-500 bg-amber-50" />
               <StatCard title="Recent Bags (Last 20)" value={totalBagsOrdered} icon={Package} color="text-emerald-500 bg-emerald-50" />
             </div>
@@ -658,21 +695,129 @@ export default function AdminPage() {
           </div>
         )}
         
+        {/* Directory Tab */}
+        {activeTab === 'directory' && (
+          <div className="bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                Customer Directory
+              </h2>
+              <div className="relative">
+                <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search name or phone..." 
+                  value={directorySearch}
+                  onChange={(e) => setDirectorySearch(e.target.value)}
+                  className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {karigars.filter(k => k.name.toLowerCase().includes(directorySearch.toLowerCase()) || k.phone.includes(directorySearch)).map((k) => (
+                <div key={k.id} onClick={() => handleKarigarClick(k)} className="p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-slate-100 hover:border-slate-200 cursor-pointer transition-all flex justify-between items-start group">
+                  <div>
+                    <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{k.name}</h3>
+                    <p className="text-sm text-slate-500">{k.phone}</p>
+                  </div>
+                  <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded-lg font-bold text-sm">
+                    {k.total_points} ⭐
+                  </div>
+                </div>
+              ))}
+              
+              {karigars.filter(k => k.name.toLowerCase().includes(directorySearch.toLowerCase()) || k.phone.includes(directorySearch)).length === 0 && (
+                <div className="col-span-full text-center py-12 text-slate-500">
+                  No customers found matching your search.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Karigar Details Modal */}
+        {selectedKarigarDetails && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedKarigarDetails(null)}>
+            <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">{selectedKarigarDetails.name}</h2>
+                  <p className="text-sm text-slate-500">{selectedKarigarDetails.phone} • Total Coupons: {selectedKarigarDetails.total_points}</p>
+                </div>
+                <button onClick={() => setSelectedKarigarDetails(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400 hover:text-slate-600">
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1 bg-slate-50/30">
+                {loadingHistory ? (
+                  <div className="flex justify-center items-center py-12 text-slate-400">
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  </div>
+                ) : karigarHistory.length === 0 ? (
+                  <div className="text-center py-12 text-slate-500 bg-white rounded-2xl border border-slate-100">
+                    No approved orders with coupons yet.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {karigarHistory.map(o => (
+                      <div key={o.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-slate-300 transition-colors">
+                        <div>
+                          <div className="text-sm text-slate-500 mb-1 flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" />
+                            {new Date(o.order_time).toLocaleString(undefined, {
+                              year: 'numeric', month: 'short', day: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                            })}
+                          </div>
+                          <div className="font-medium text-slate-700 bg-slate-50 inline-block px-3 py-1.5 rounded-lg border border-slate-100">
+                            {[
+                              o.bags_ordered ? `${o.bags_ordered} bags` : null,
+                              o.sariya_ordered ? `₹${o.sariya_ordered} sariya` : null
+                            ].filter(Boolean).join(' & ')}
+                          </div>
+                        </div>
+                        {o.points_awarded > 0 && (
+                          <div className="shrink-0 text-left sm:text-right">
+                            <p className="text-xs text-slate-500 mb-1.5 uppercase font-semibold tracking-wider">Coupons Allotted</p>
+                            <span className="font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 inline-block shadow-sm">
+                              #{formatCoupons(o.coupon_number, o.points_awarded)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
       </div>
     </main>
   );
 }
 
-function StatCard({ title, value, icon: Icon, color }: any) {
+function StatCard({ title, value, icon: Icon, color, action, actionText }: any) {
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100 flex items-center gap-4">
-      <div className={`p-4 rounded-2xl ${color}`}>
-        <Icon className="w-8 h-8" />
+    <div className="bg-white p-6 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100 flex items-center justify-between gap-4">
+      <div className="flex items-center gap-4">
+        <div className={`p-4 rounded-2xl ${color}`}>
+          <Icon className="w-8 h-8" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-slate-500">{title}</p>
+          <p className="text-3xl font-bold mt-1 text-slate-900">{value}</p>
+        </div>
       </div>
-      <div>
-        <p className="text-sm font-medium text-slate-500">{title}</p>
-        <p className="text-3xl font-bold mt-1 text-slate-900">{value}</p>
-      </div>
+      {action && actionText && (
+        <button onClick={action} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors flex flex-col items-center gap-1 shrink-0">
+           <ChevronRight className="w-5 h-5" />
+           <span className="text-[10px] font-medium uppercase tracking-wider">{actionText}</span>
+        </button>
+      )}
     </div>
   );
 }

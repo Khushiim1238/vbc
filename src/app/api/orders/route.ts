@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const balance_after = current_points + points_awarded;
 
     // 2. Fetch the most recent order to determine the next coupon sequence
-    let nextCouponNumber = 10; // Default starting coupon number
+    let nextCouponNumber = 1; // Default starting coupon number
 
     const { data: latestOrder, error: latestOrderError } = await supabase
       .from('orders')
