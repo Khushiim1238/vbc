@@ -20,6 +20,7 @@ interface Transaction {
   order_time: string;
   status: string;
   points_awarded: number;
+  coupon_number: number;
   karigars?: { name: string; phone: string };
 }
 
@@ -41,6 +42,7 @@ export default function OrderEntry() {
     bags: number;
     sariyaAmount: number;
     coupons: number;
+    startCoupon?: number;
   } | null>(null);
 
   // Form State
@@ -173,7 +175,8 @@ export default function OrderEntry() {
           customerName: targetCustomerName,
           bags: submittedBags,
           sariyaAmount: submittedSariya,
-          coupons: data.order?.points_awarded ?? calculatedCoupons
+          coupons: data.order?.points_awarded ?? calculatedCoupons,
+          startCoupon: data.order?.coupon_number
         });
 
         // Clear fields
@@ -187,8 +190,8 @@ export default function OrderEntry() {
         setIsNewCustomer(false);
         fetchKarigars();
 
-        // Auto-hide success after 10s
-        setTimeout(() => setSuccess(null), 10000);
+        // Auto-hide success after 2s
+        setTimeout(() => setSuccess(null), 2000);
       } else {
         alert(data.error || "Failed to submit order");
       }
@@ -248,6 +251,15 @@ export default function OrderEntry() {
     );
   }
 
+  // Utility to format coupon numbers
+  const formatCoupons = (start: number | null | undefined, count: number) => {
+    if (!start) return count.toString();
+    if (count === 1) return start.toString();
+    const arr = [];
+    for(let i=0; i<count; i++) arr.push(start + i);
+    return arr.join(", ");
+  };
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-gray-800 font-sans selection:bg-orange-100 selection:text-orange-900">
       {/* Elegant Header */}
@@ -279,44 +291,50 @@ export default function OrderEntry() {
             onClick={() => setActiveTab('order')}
             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'order' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
           >
-            <FilePlus className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
             New Order
           </button>
           <button
             onClick={() => setActiveTab('transactions')}
             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'transactions' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
           >
-            <Receipt className="w-4 h-4" />
+            <Clock className="w-4 h-4" />
             Transactions
           </button>
         </div>
 
         {activeTab === 'order' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            {/* Page Title */}
-            <div className="mb-6 text-center lg:text-left">
-              <h1 className="text-4xl font-light tracking-tight text-gray-900 mb-3">Create New Order</h1>
-              <p className="text-gray-500 text-lg">Log purchases elegantly and award points instantly.</p>
-            </div>
-
-            {/* Detailed Success Message */}
-            {success && (
-              <div className="mb-8 p-6 bg-white border border-green-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-5 text-green-900 shadow-sm animate-in fade-in slide-in-from-top-4 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div>
-                <div className="bg-green-100 p-3 rounded-full flex-shrink-0">
-                  <Check className="w-7 h-7 text-green-600" />
-                </div>
-                <div className="flex-1 w-full">
-                  <h3 className="text-lg font-semibold text-green-800 mb-1">Order Confirmed for {success.customerName}</h3>
-                  <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-sm text-green-700/90 font-medium">
-                    <span className="flex items-center gap-1.5"><Package className="w-4 h-4" /> {success.bags} Bags</span>
-                    <span className="flex items-center gap-1.5">₹ {success.sariyaAmount.toLocaleString()} Sariya</span>
-                    <span className="flex items-center gap-1.5 bg-green-200/50 px-2.5 py-1 rounded-md text-green-900"><Ticket className="w-4 h-4" /> {success.coupons} Coupons Earned</span>
+            {/* Header section with Success Alert overlay */}
+            <div className="mb-6 relative h-[72px]"> 
+              {success ? (
+                <div className="absolute inset-0 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between animate-in slide-in-from-top-2 fade-in duration-300 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-emerald-100 p-2 rounded-full shrink-0">
+                      <Check className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-emerald-900 font-medium leading-tight">Order Logged: {success.customerName}</p>
+                      <p className="text-emerald-600 text-sm mt-0.5">
+                        Coupons {formatCoupons(success.startCoupon, success.coupons)} Allotted
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-medium text-emerald-800 bg-emerald-100/50 px-3 py-1 rounded-full">
+                      Waiting for Admin Approval
+                    </p>
                   </div>
                 </div>
-                <button onClick={() => setSuccess(null)} className="absolute top-4 right-4 text-green-600 hover:text-green-800 font-bold p-2">✕</button>
-              </div>
-            )}
+              ) : (
+                <div className="mb-6 text-center lg:text-left">
+                  <h1 className="text-4xl font-light tracking-tight text-gray-900 mb-3">Create New Order</h1>
+                  <p className="text-gray-500 text-lg">Log purchases elegantly and award points instantly.</p>
+                </div>
+              )}
+            </div>
+
+
 
             <form onSubmit={handleSubmit} className="space-y-8">
               
@@ -532,10 +550,10 @@ export default function OrderEntry() {
 
                       <div className="sm:text-right shrink-0 mt-3 sm:mt-0 flex sm:flex-col items-center sm:items-end justify-between sm:justify-center">
                         <div className="flex items-center gap-1.5">
-                          <span className={`font-extrabold text-xl ${isApproved ? 'text-emerald-600' : 'text-slate-400'}`}>
-                            +{t.points_awarded}
+                          <span className={`font-extrabold text-sm ${isApproved ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            C-No: {formatCoupons(t.coupon_number, t.points_awarded)}
                           </span>
-                          <Trophy className={`w-5 h-5 ${isApproved ? 'text-emerald-500' : 'text-slate-300'}`} />
+                          <Trophy className={`w-4 h-4 ${isApproved ? 'text-emerald-500' : 'text-slate-300'}`} />
                         </div>
                         <div className={`inline-block px-3 py-1 mt-0 sm:mt-1 rounded-full text-xs font-bold uppercase tracking-wider ${isApproved ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
                           {isApproved ? 'Approved' : 'Pending'}

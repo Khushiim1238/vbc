@@ -12,6 +12,7 @@ interface PendingOrder {
   order_time: string;
   entered_by: string;
   points_awarded: number;
+  coupon_number: number;
   karigars?: { name: string; phone: string };
 }
 
@@ -28,10 +29,20 @@ interface Order {
   bags_ordered: number;
   sariya_ordered: number;
   order_time: string;
-  entered_by: string;
+  status: string;
   points_awarded: number;
-  karigars?: { name: string };
+  coupon_number: number;
+  karigars?: { name: string; phone: string };
 }
+
+// Utility to format coupon numbers
+const formatCoupons = (start: number | null | undefined, count: number) => {
+  if (!start) return count.toString();
+  if (count === 1) return start.toString();
+  const arr = [];
+  for(let i=0; i<count; i++) arr.push(start + i);
+  return arr.join(", ");
+};
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -159,7 +170,7 @@ export default function AdminPage() {
             orderDetails = `सरिया: ₹${w.sariya}`;
           }
 
-          const msg = `नमस्ते ${w.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिला है कूपन नंबर : ${w.pointsAwarded}\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\nधन्यवाद! वर्धमान ग्रुप टोंक`;
+          const msg = `नमस्ते ${w.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिले हैं कूपन नंबर : ${w.couponCode}\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\nधन्यवाद! वर्धमान ग्रुप टोंक`;
           
           let phone = w.phone.replace(/\D/g, '');
           if (phone.length === 10) phone = '91' + phone;
@@ -234,7 +245,7 @@ export default function AdminPage() {
               orderDetails = `सरिया: ₹${w.sariya}`;
             }
 
-            const msg = `नमस्ते ${w.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिला है कूपन नंबर : ${w.pointsAwarded}\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\nधन्यवाद! वर्धमान ग्रुप टोंक`;
+            const msg = `नमस्ते ${w.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिले हैं कूपन नंबर : ${w.couponCode}\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\nधन्यवाद! वर्धमान ग्रुप टोंक`;
             
             let phone = w.phone.replace(/\D/g, '');
             if (phone.length === 10) phone = '91' + phone;
@@ -386,92 +397,185 @@ export default function AdminPage() {
                 <p className="text-slate-500 mt-1">No pending entries to review.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-sm text-slate-500 bg-slate-50/50">
-                      <th className="pb-3 pt-3 pl-4 w-12 rounded-tl-xl">
-                        <input 
-                          type="checkbox" 
-                          className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                          checked={pendingOrders.length > 0 && selectedOrderIds.length === pendingOrders.length}
-                          onChange={toggleSelectAll}
-                        />
-                      </th>
-                      <th className="pb-3 pt-3 font-medium">Time</th>
-                      <th className="pb-3 pt-3 font-medium">Karigar</th>
-                      <th className="pb-3 pt-3 font-medium">Purchases</th>
-                      <th className="pb-3 pt-3 font-medium text-right">Points to Award</th>
-                      <th className="pb-3 pt-3 font-medium text-right pr-4 rounded-tr-xl">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {pendingOrders.map((o) => {
-                      const isSelected = selectedOrderIds.includes(o.id);
-                      return (
-                        <tr key={o.id} className={`text-sm transition-colors ${isSelected ? 'bg-emerald-50/40' : 'hover:bg-slate-50/50'}`}>
-                          <td className="py-4 pl-4">
+              <div className="space-y-4">
+                {/* Desktop View (Table) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-sm text-slate-500 bg-slate-50/50">
+                        <th className="pb-3 pt-3 pl-4 w-12 rounded-tl-xl">
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                            checked={pendingOrders.length > 0 && selectedOrderIds.length === pendingOrders.length}
+                            onChange={toggleSelectAll}
+                          />
+                        </th>
+                        <th className="pb-3 pt-3 font-medium">Time</th>
+                        <th className="pb-3 pt-3 font-medium">Karigar</th>
+                        <th className="pb-3 pt-3 font-medium">Purchases</th>
+                        <th className="pb-3 pt-3 font-medium text-right">Points to Award</th>
+                        <th className="pb-3 pt-3 font-medium text-right pr-4 rounded-tr-xl">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {pendingOrders.map((o) => {
+                        const isSelected = selectedOrderIds.includes(o.id);
+                        return (
+                          <tr key={o.id} className={`text-sm transition-colors ${isSelected ? 'bg-emerald-50/40' : 'hover:bg-slate-50/50'}`}>
+                            <td className="py-4 pl-4">
+                              <input 
+                                type="checkbox" 
+                                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                checked={isSelected}
+                                onChange={() => toggleSelectOrder(o.id)}
+                              />
+                            </td>
+                            <td className="py-4 text-slate-500">
+                              {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              <div className="text-xs">{new Date(o.order_time).toLocaleDateString()}</div>
+                            </td>
+                            <td className="py-4">
+                              <div className="font-medium text-slate-900">{o.karigars?.name || 'Unknown'}</div>
+                              <div className="text-xs text-slate-400">{o.karigars?.phone}</div>
+                            </td>
+                            <td className="py-4 text-slate-600">
+                              {[
+                                o.bags_ordered > 0 ? `${o.bags_ordered} bags` : null,
+                                o.sariya_ordered > 0 ? `₹${o.sariya_ordered} sariya` : null
+                              ].filter(Boolean).join(' & ')}
+                            </td>
+                            <td className="py-4 text-right">
+                              <span className="font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md text-xs">
+                                C-No: {formatCoupons(o.coupon_number, o.points_awarded)}
+                              </span>
+                            </td>
+                            <td className="py-4 pr-4 text-right flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleCancel(o.id)}
+                                disabled={cancelProcessingId === o.id || processingId === o.id || isBulkProcessing}
+                                className="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50"
+                              >
+                                {cancelProcessingId === o.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <XCircle className="w-4 h-4" />
+                                    <span className="hidden xl:inline">Cancel</span>
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleApprove(o.id)}
+                                disabled={processingId === o.id || cancelProcessingId === o.id || isBulkProcessing}
+                                className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50"
+                              >
+                                {processingId === o.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <CheckCircle className="w-4 h-4" />
+                                    <span className="hidden xl:inline">Approve</span>
+                                  </>
+                                )}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View (Cards) */}
+                <div className="md:hidden flex flex-col gap-4">
+                  {/* Select All Row for Mobile */}
+                  {pendingOrders.length > 0 && (
+                    <div className="flex items-center gap-3 px-2 py-1">
+                      <input 
+                        type="checkbox" 
+                        className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        checked={selectedOrderIds.length === pendingOrders.length}
+                        onChange={toggleSelectAll}
+                        id="selectAllMobile"
+                      />
+                      <label htmlFor="selectAllMobile" className="text-sm font-medium text-slate-700 select-none">
+                        Select All {pendingOrders.length} Orders
+                      </label>
+                    </div>
+                  )}
+
+                  {pendingOrders.map((o) => {
+                    const isSelected = selectedOrderIds.includes(o.id);
+                    return (
+                      <div key={o.id} className={`p-4 rounded-2xl border transition-colors ${isSelected ? 'bg-emerald-50/40 border-emerald-200' : 'bg-slate-50 border-slate-100'} shadow-sm flex flex-col gap-4`}>
+                        <div className="flex items-start gap-3">
+                          <div className="pt-1 shrink-0">
                             <input 
                               type="checkbox" 
-                              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                              className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                               checked={isSelected}
                               onChange={() => toggleSelectOrder(o.id)}
                             />
-                          </td>
-                          <td className="py-4 text-slate-500">
-                            {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            <div className="text-xs">{new Date(o.order_time).toLocaleDateString()}</div>
-                          </td>
-                          <td className="py-4">
-                            <div className="font-medium text-slate-900">{o.karigars?.name || 'Unknown'}</div>
-                            <div className="text-xs text-slate-400">{o.karigars?.phone}</div>
-                          </td>
-                          <td className="py-4 text-slate-600">
-                            {[
-                              o.bags_ordered > 0 ? `${o.bags_ordered} bags` : null,
-                              o.sariya_ordered > 0 ? `₹${o.sariya_ordered} sariya` : null
-                            ].filter(Boolean).join(' & ')}
-                          </td>
-                          <td className="py-4 text-right">
-                            <span className="font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
-                              +{o.points_awarded}
-                            </span>
-                          </td>
-                          <td className="py-4 pr-4 text-right flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleCancel(o.id)}
-                              disabled={cancelProcessingId === o.id || processingId === o.id || isBulkProcessing}
-                              className="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50"
-                            >
-                              {cancelProcessingId === o.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <XCircle className="w-4 h-4" />
-                                  <span className="hidden sm:inline">Cancel</span>
-                                </>
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleApprove(o.id)}
-                              disabled={processingId === o.id || cancelProcessingId === o.id || isBulkProcessing}
-                              className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50"
-                            >
-                              {processingId === o.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <CheckCircle className="w-4 h-4" />
-                                  <span className="hidden sm:inline">Approve</span>
-                                </>
-                              )}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                          </div>
+                          <div className="flex-1 flex justify-between items-start min-w-0">
+                            <div className="min-w-0 pr-2">
+                              <h3 className="font-semibold text-slate-900 truncate">{o.karigars?.name || 'Unknown'}</h3>
+                              <p className="text-xs text-slate-500">{o.karigars?.phone}</p>
+                              <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {new Date(o.order_time).toLocaleDateString()} {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <span className="font-bold text-emerald-600 bg-emerald-100/50 px-2.5 py-1 rounded-md text-xs whitespace-nowrap">
+                                C-No: {formatCoupons(o.coupon_number, o.points_awarded)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-white p-3 rounded-xl border border-slate-100 text-sm font-medium text-slate-700">
+                          {[
+                            o.bags_ordered > 0 ? `${o.bags_ordered} bags` : null,
+                            o.sariya_ordered > 0 ? `₹${o.sariya_ordered} sariya` : null
+                          ].filter(Boolean).join(' & ')}
+                        </div>
+
+                        <div className="flex items-center gap-3 pt-1">
+                          <button
+                            onClick={() => handleCancel(o.id)}
+                            disabled={cancelProcessingId === o.id || processingId === o.id || isBulkProcessing}
+                            className="flex-1 inline-flex justify-center items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 py-2.5 rounded-xl font-medium transition-colors disabled:opacity-50"
+                          >
+                            {cancelProcessingId === o.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <XCircle className="w-4 h-4" />
+                                Cancel
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleApprove(o.id)}
+                            disabled={processingId === o.id || cancelProcessingId === o.id || isBulkProcessing}
+                            className="flex-1 inline-flex justify-center items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl font-medium transition-colors shadow-sm shadow-emerald-500/20 disabled:opacity-50"
+                          >
+                            {processingId === o.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <CheckCircle className="w-4 h-4" />
+                                Approve
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -543,7 +647,7 @@ export default function AdminPage() {
                       </p>
                       {o.points_awarded > 0 && (
                         <div className="mt-2 text-xs font-medium text-emerald-600 bg-emerald-100/50 inline-block px-2 py-1 rounded-md">
-                          +{o.points_awarded} Points Awarded
+                          C-No: {formatCoupons(o.coupon_number, o.points_awarded)} Allotted
                         </div>
                       )}
                     </div>

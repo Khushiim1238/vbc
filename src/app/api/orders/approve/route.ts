@@ -55,6 +55,18 @@ export async function POST(request: Request) {
       }
     }
 
+    // Format coupon string
+    const couponCount = points_awarded;
+    const startCoupon = order.coupon_number;
+    let couponString = startCoupon?.toString() || order.id.slice(0, 6).toUpperCase();
+    if (couponCount > 1 && startCoupon) {
+      const coupons = [];
+      for (let i = 0; i < couponCount; i++) {
+        coupons.push(startCoupon + i);
+      }
+      couponString = coupons.join(", ");
+    }
+
     // 4. Return data for free 1-click WhatsApp popup
     return NextResponse.json({ 
       success: true, 
@@ -66,7 +78,7 @@ export async function POST(request: Request) {
         sariya: order.sariya_ordered,
         pointsAwarded: points_awarded,
         totalPoints: balance_after,
-        couponCode: order.coupon_number?.toString() || order.id.slice(0, 6).toUpperCase()
+        couponCode: couponString
       }
     });
   } catch (error) {
