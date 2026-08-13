@@ -84,6 +84,8 @@ export default function AdminPage() {
         if (data.authenticated && data.role === 'admin') {
           setIsAuthenticated(true);
           fetchData();
+        } else {
+          setLoading(false);
         }
       } catch (err) {
         console.error("Auth check failed", err);
