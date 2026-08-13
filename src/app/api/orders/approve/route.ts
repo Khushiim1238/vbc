@@ -27,10 +27,27 @@ export async function POST(request: Request) {
     const current_points = karigar.total_points || 0;
     const balance_after = current_points + points_awarded;
 
+    let startCoupon = null;
+
+    if (points_awarded > 0) {
+      // Fetch atomic coupon sequence
+      const { data: nextCoupon, error: seqError } = await supabase.rpc('get_next_coupon');
+      if (!seqError && nextCoupon) {
+        startCoupon = nextCoupon;
+        // Consume subsequent sequence numbers if multiple points awarded
+        for (let i = 1; i < points_awarded; i++) {
+           await supabase.rpc('get_next_coupon');
+        }
+      }
+    }
+
     // 2. Update order status to approved
     const { error: updateError } = await supabase
       .from('orders')
-      .update({ status: 'approved' })
+      .update({ 
+        status: 'approved',
+        coupon_number: startCoupon 
+      })
       .eq('id', order_id);
 
     if (updateError) {
@@ -57,7 +74,6 @@ export async function POST(request: Request) {
 
     // Format coupon string
     const couponCount = points_awarded;
-    const startCoupon = order.coupon_number;
     let couponString = startCoupon?.toString() || order.id.slice(0, 6).toUpperCase();
     if (couponCount > 1 && startCoupon) {
       const coupons = [];

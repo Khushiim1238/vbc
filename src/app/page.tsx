@@ -56,7 +56,7 @@ export default function OrderEntry() {
 
   const [bags, setBags] = useState<number | "">("");
   const [sariya1, setSariya1] = useState<number | "">(""); // Sariya in Rs
-  const [enteredBy, setEnteredBy] = useState("Staff");
+  const [enteredBy] = useState("Staff");
 
   useEffect(() => {
     const authTime = localStorage.getItem('vbc_home_auth_time');
@@ -79,7 +79,7 @@ export default function OrderEntry() {
     }
   }, [activeTab]);
 
-  const fetchTransactions = async () => {
+  async function fetchTransactions() {
     setLoadingTransactions(true);
     try {
       const { data, error } = await supabase
@@ -89,25 +89,25 @@ export default function OrderEntry() {
         .limit(50);
         
       if (error) throw error;
-      setTransactions((data as any) || []);
+      setTransactions((data as Transaction[]) || []);
     } catch (err) {
       console.error("Failed to fetch transactions", err);
     } finally {
       setLoadingTransactions(false);
     }
-  };
+  }
 
-  const fetchKarigars = async () => {
+  async function fetchKarigars() {
     try {
       const res = await fetch("/api/karigars");
       const data = await res.json();
       if (Array.isArray(data)) setKarigars(data);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch karigars:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleCreateKarigar = async () => {
     if (!newKarigarName || !newKarigarPhone) return null;
@@ -125,6 +125,7 @@ export default function OrderEntry() {
       setKarigars(prev => [...prev, data.karigar].sort((a, b) => a.name.localeCompare(b.name)));
       return { id: data.karigar.id, name: data.karigar.name };
     } catch (err) {
+      console.error("Error creating karigar:", err);
       alert("Something went wrong creating the Karigar");
       return null;
     }
@@ -190,12 +191,12 @@ export default function OrderEntry() {
         setIsNewCustomer(false);
         fetchKarigars();
 
-        // Auto-hide success after 2s
-        setTimeout(() => setSuccess(null), 2000);
+        // Do NOT auto-hide success; the user will click "Done" on the overlay modal
       } else {
         alert(data.error || "Failed to submit order");
       }
     } catch (err) {
+      console.error("Error submitting order:", err);
       alert("Something went wrong");
     } finally {
       setSubmitting(false);
@@ -305,33 +306,36 @@ export default function OrderEntry() {
 
         {activeTab === 'order' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            {/* Header section with Success Alert overlay */}
-            <div className="mb-6 relative h-[72px]"> 
-              {success ? (
-                <div className="absolute inset-0 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between animate-in slide-in-from-top-2 fade-in duration-300 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-emerald-100 p-2 rounded-full shrink-0">
-                      <Check className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-emerald-900 font-medium leading-tight">Order Logged: {success.customerName}</p>
-                      <p className="text-emerald-600 text-sm mt-0.5">
-                        Coupons {formatCoupons(success.startCoupon, success.coupons)} Allotted
-                      </p>
-                    </div>
+            {/* Success Overlay Modal */}
+            {success && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300 p-4">
+                <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+                  <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
+                    <CheckCircle2 className="w-10 h-10" />
                   </div>
-                  <div className="text-right hidden sm:block">
-                    <p className="text-sm font-medium text-emerald-800 bg-emerald-100/50 px-3 py-1 rounded-full">
-                      Waiting for Admin Approval
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Order Successful!</h2>
+                  <p className="text-slate-600 mb-6">
+                    <span className="font-semibold text-slate-900">{success.customerName}'s</span> order has been logged.
+                  </p>
+                  <div className="bg-emerald-50 w-full rounded-2xl p-4 mb-6 border border-emerald-100">
+                    <p className="text-sm text-emerald-800 font-medium mb-1">Coupons Allotted</p>
+                    <p className="text-3xl font-bold text-emerald-600 tracking-wider">
+                      {formatCoupons(success.startCoupon, success.coupons)}
                     </p>
                   </div>
+                  <button 
+                    onClick={() => setSuccess(null)}
+                    className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium transition-colors"
+                  >
+                    Done
+                  </button>
                 </div>
-              ) : (
-                <div className="mb-6 text-center lg:text-left">
-                  <h1 className="text-4xl font-light tracking-tight text-gray-900 mb-3">Create New Order</h1>
-                  <p className="text-gray-500 text-lg">Log purchases elegantly and award points instantly.</p>
-                </div>
-              )}
+              </div>
+            )}
+
+            <div className="mb-6 text-center lg:text-left">
+              <h1 className="text-4xl font-light tracking-tight text-gray-900 mb-3">Create New Order</h1>
+              <p className="text-gray-500 text-lg">Log purchases elegantly and award points instantly.</p>
             </div>
 
 

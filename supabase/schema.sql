@@ -21,14 +21,25 @@ CREATE TABLE public.orders (
     points_awarded INTEGER NOT NULL DEFAULT 0,
     whatsapp_status TEXT DEFAULT 'pending',
     whatsapp_message_id TEXT,
-    coupon_number SERIAL
+    coupon_number INTEGER
 );
+
+-- Sequence for coupon numbers (only used upon approval)
+CREATE SEQUENCE IF NOT EXISTS public.coupon_seq START 1;
+
+-- RPC function to safely get next coupon number
+CREATE OR REPLACE FUNCTION get_next_coupon()
+RETURNS integer AS $$
+BEGIN
+    RETURN nextval('coupon_seq');
+END;
+$$ LANGUAGE plpgsql;
 
 -- 3. Points Ledger Table
 CREATE TABLE public.points_ledger (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     karigar_id UUID NOT NULL REFERENCES public.karigars(id) ON DELETE CASCADE,
-    order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL,
+    order_id UUID REFERENCES public.orders(id) ON DELETE RESTRICT,
     points_change INTEGER NOT NULL,
     balance_after INTEGER NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -38,9 +49,9 @@ CREATE TABLE public.points_ledger (
 CREATE OR REPLACE FUNCTION update_karigar_total_points()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Update the total_points in karigars table
+    -- Update the total_points in karigars table atomically
     UPDATE public.karigars
-    SET total_points = NEW.balance_after
+    SET total_points = total_points + NEW.points_change
     WHERE id = NEW.karigar_id;
     
     RETURN NEW;

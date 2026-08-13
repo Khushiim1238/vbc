@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { CheckCircle, Clock, Loader2, XCircle, CheckSquare, Activity, Trophy, Package, Users, LayoutDashboard, ListChecks, Lock, Search, ChevronRight } from "lucide-react";
 
@@ -69,6 +69,12 @@ export default function AdminPage() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   
   const [loading, setLoading] = useState(true);
+  const [bulkApprovedOrders, setBulkApprovedOrders] = useState<any[]>([]);
+  const karigarsRef = useRef<Karigar[]>([]);
+
+  useEffect(() => {
+    karigarsRef.current = karigars;
+  }, [karigars]);
 
   useEffect(() => {
     const authTime = localStorage.getItem('vbc_admin_auth_time');
@@ -87,9 +93,10 @@ export default function AdminPage() {
     // Setup Subscriptions
     const adminOrderSub = supabase
       .channel('admin-orders-channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
         if (payload.new.status === 'pending') {
-          const { data: karigarData } = await supabase.from('karigars').select('name, phone').eq('id', payload.new.karigar_id).single();
+          const k = karigarsRef.current.find(k => k.id === payload.new.karigar_id);
+          const karigarData = k ? { name: k.name, phone: k.phone } : undefined;
           const newOrder = { ...payload.new, karigars: karigarData } as PendingOrder;
           setPendingOrders(prev => {
             if (prev.some(o => o.id === newOrder.id)) return prev;
@@ -113,9 +120,10 @@ export default function AdminPage() {
 
     const dashOrderSub = supabase
       .channel('dash-orders-channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async payload => {
-        const { data } = await supabase.from('karigars').select('name').eq('id', payload.new.karigar_id).single();
-        const newOrder = { ...payload.new, karigars: data } as Order;
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
+        const k = karigarsRef.current.find(k => k.id === payload.new.karigar_id);
+        const karigarData = k ? { name: k.name } : undefined;
+        const newOrder = { ...payload.new, karigars: karigarData } as Order;
         setDashboardOrders(prev => [newOrder, ...prev].slice(0, 20));
       })
       .subscribe();
@@ -137,13 +145,13 @@ export default function AdminPage() {
 
       if (pendingRes.error) throw pendingRes.error;
       
-      setPendingOrders((pendingRes.data as any) || []);
-      if (karigarsRes.data) setKarigars(karigarsRes.data);
-      if (ordersRes.data) setDashboardOrders(ordersRes.data as any);
+      setPendingOrders((pendingRes.data as PendingOrder[]) || []);
+      if (karigarsRes.data) setKarigars(karigarsRes.data as Karigar[]);
+      if (ordersRes.data) setDashboardOrders(ordersRes.data as Order[]);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to fetch data", err);
-      setAdminError(err?.message || JSON.stringify(err) || "Failed to fetch data.");
+      setAdminError(err instanceof Error ? err.message : "Failed to fetch data.");
     } finally {
       setLoading(false);
     }
@@ -245,10 +253,10 @@ export default function AdminPage() {
 
   const handleBulkApprove = async () => {
     if (selectedOrderIds.length === 0) return;
-    if (!window.confirm(`Approve ${selectedOrderIds.length} selected orders?\nNote: Your browser might block multiple WhatsApp popups. You may need to click 'Allow popups' for this site.`)) return;
+    if (!window.confirm(`Approve ${selectedOrderIds.length} selected orders?`)) return;
 
     setIsBulkProcessing(true);
-    let successCount = 0;
+    const successData = [];
 
     for (const orderId of selectedOrderIds) {
       try {
@@ -260,40 +268,24 @@ export default function AdminPage() {
         
         const data = await res.json();
         if (data.success) {
-          successCount++;
           setPendingOrders(prev => prev.filter(o => o.id !== orderId));
           
           if (data.whatsapp_data && data.whatsapp_data.pointsAwarded > 0) {
-            const w = data.whatsapp_data;
-            
-            let orderDetails = "";
-            if (w.bags > 0 && w.sariya > 0) {
-              orderDetails = `सीमेंट: ${w.bags} बैग\nसरिया: ₹${w.sariya}`;
-            } else if (w.bags > 0) {
-              orderDetails = `सीमेंट: ${w.bags} बैग`;
-            } else if (w.sariya > 0) {
-              orderDetails = `सरिया: ₹${w.sariya}`;
-            }
-
-            const msg = `नमस्ते ${w.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिले हैं कूपन नंबर : ${w.couponCode}\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\nधन्यवाद! वर्धमान ग्रुप टोंक`;
-            
-            let phone = w.phone.replace(/\D/g, '');
-            if (phone.length === 10) phone = '91' + phone;
-            const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
-            window.open(url, '_blank');
+            successData.push(data.whatsapp_data);
           }
         }
       } catch (err) {
         console.error("Bulk approve failed for order", orderId, err);
       }
-      await new Promise(r => setTimeout(r, 600));
     }
     
     setSelectedOrderIds([]);
     setIsBulkProcessing(false);
     
-    if (successCount > 0) {
-      alert(`Bulk approval complete. ${successCount} orders approved.`);
+    if (successData.length > 0) {
+      setBulkApprovedOrders(successData);
+    } else {
+      alert("Bulk approval complete.");
     }
   };
 
@@ -795,12 +787,67 @@ export default function AdminPage() {
           </div>
         )}
         
+        {/* Bulk Approve WhatsApp Modal */}
+        {bulkApprovedOrders.length > 0 && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white rounded-3xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold">Orders Approved</h2>
+                  <p className="text-sm text-slate-500 mt-1">Send WhatsApp notifications manually.</p>
+                </div>
+                <button onClick={() => setBulkApprovedOrders([])} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400">
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto flex-1 space-y-3">
+                {bulkApprovedOrders.map((w, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div>
+                      <p className="font-medium text-slate-900">{w.name}</p>
+                      <p className="text-xs text-slate-500">{w.phone}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        let orderDetails = "";
+                        if (w.bags > 0 && w.sariya > 0) orderDetails = `सीमेंट: ${w.bags} बैग\nसरिया: ₹${w.sariya}`;
+                        else if (w.bags > 0) orderDetails = `सीमेंट: ${w.bags} बैग`;
+                        else if (w.sariya > 0) orderDetails = `सरिया: ₹${w.sariya}`;
+
+                        const msg = `नमस्ते ${w.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिले हैं कूपन नंबर : ${w.couponCode}\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\nधन्यवाद! वर्धमान ग्रुप टोंक`;
+                        let phone = w.phone.replace(/\D/g, '');
+                        if (phone.length === 10) phone = '91' + phone;
+                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                      }}
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Send Msg
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="p-4 border-t border-slate-100">
+                <button onClick={() => setBulkApprovedOrders([])} className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium transition-colors">Done</button>
+              </div>
+            </div>
+          </div>
+        )}
+        
       </div>
     </main>
   );
 }
 
-function StatCard({ title, value, icon: Icon, color, action, actionText }: any) {
+interface StatCardProps {
+  title: string;
+  value: number | string;
+  icon: any;
+  color: string;
+  action?: () => void;
+  actionText?: string;
+}
+
+function StatCard({ title, value, icon: Icon, color, action, actionText }: StatCardProps) {
   return (
     <div className="bg-white p-6 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100 flex items-center justify-between gap-4">
       <div className="flex items-center gap-4">
