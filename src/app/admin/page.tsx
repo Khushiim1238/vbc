@@ -77,18 +77,19 @@ export default function AdminPage() {
   }, [karigars]);
 
   useEffect(() => {
-    const authTime = localStorage.getItem('vbc_admin_auth_time');
-    if (authTime) {
-      const now = new Date().getTime();
-      const storedTime = parseInt(authTime, 10);
-      const hours24 = 24 * 60 * 60 * 1000;
-      if (now - storedTime < hours24) {
-        setIsAuthenticated(true);
-      } else {
-        localStorage.removeItem('vbc_admin_auth_time');
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        const data = await res.json();
+        if (data.authenticated && data.role === 'admin') {
+          setIsAuthenticated(true);
+          fetchData();
+        }
+      } catch (err) {
+        console.error("Auth check failed", err);
       }
-    }
-    fetchData();
+    };
+    checkAuth();
 
     // Setup Subscriptions
     const adminOrderSub = supabase
@@ -269,8 +270,7 @@ export default function AdminPage() {
         const data = await res.json();
         if (data.success) {
           setPendingOrders(prev => prev.filter(o => o.id !== orderId));
-          
-          if (data.whatsapp_data && data.whatsapp_data.pointsAwarded > 0) {
+          if (data.whatsapp_data) {
             successData.push(data.whatsapp_data);
           }
         }
@@ -320,14 +320,24 @@ export default function AdminPage() {
           </div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Admin Access</h2>
           <p className="text-slate-500 mb-8">Please enter the Admin PIN</p>
-          <form onSubmit={(e) => {
+          <form onSubmit={async (e) => {
             e.preventDefault();
-            if (passwordInput === "1971") {
-              setIsAuthenticated(true);
-              localStorage.setItem('vbc_admin_auth_time', new Date().getTime().toString());
-            } else {
-              alert("Incorrect PIN");
-              setPasswordInput("");
+            try {
+              const res = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pin: passwordInput })
+              });
+              const data = await res.json();
+              if (res.ok && data.role === 'admin') {
+                setIsAuthenticated(true);
+                fetchData(); // Fetch data after successful login
+              } else {
+                alert(data.error || "Incorrect PIN or Unauthorized");
+                setPasswordInput("");
+              }
+            } catch (err) {
+              alert("Network error");
             }
           }}>
             <input
@@ -814,7 +824,14 @@ export default function AdminPage() {
                         else if (w.bags > 0) orderDetails = `सीमेंट: ${w.bags} बैग`;
                         else if (w.sariya > 0) orderDetails = `सरिया: ₹${w.sariya}`;
 
-                        const msg = `नमस्ते ${w.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिले हैं कूपन नंबर : ${w.couponCode}\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\nधन्यवाद! वर्धमान ग्रुप टोंक`;
+                        let couponMsg = "";
+                        if (w.pointsAwarded > 0) {
+                          couponMsg = `🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिले हैं कूपन नंबर : ${w.couponCode}\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\n`;
+                        } else {
+                          couponMsg = `No coupon allotted\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\n`;
+                        }
+
+                        const msg = `नमस्ते ${w.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n${couponMsg}धन्यवाद! वर्धमान ग्रुप टोंक`;
                         let phone = w.phone.replace(/\D/g, '');
                         if (phone.length === 10) phone = '91' + phone;
                         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');

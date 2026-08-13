@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { cookies } from 'next/headers';
 import { sendWhatsAppNotification } from '@/lib/whatsapp';
 
 export async function POST(request: Request) {
+  const cookieStore = await cookies();
+  const role = cookieStore.get('vbc_role')?.value;
+  if (!role) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { karigar_id, bags_ordered, sariya_ordered, entered_by } = await request.json();
 

@@ -59,17 +59,18 @@ export default function OrderEntry() {
   const [enteredBy] = useState("Staff");
 
   useEffect(() => {
-    const authTime = localStorage.getItem('vbc_home_auth_time');
-    if (authTime) {
-      const now = new Date().getTime();
-      const storedTime = parseInt(authTime, 10);
-      const hours24 = 24 * 60 * 60 * 1000;
-      if (now - storedTime < hours24) {
-        setIsAuthenticated(true);
-      } else {
-        localStorage.removeItem('vbc_home_auth_time');
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        const data = await res.json();
+        if (data.authenticated) {
+          setIsAuthenticated(true);
+        }
+      } catch (err) {
+        console.error("Auth check failed", err);
       }
-    }
+    };
+    checkAuth();
     fetchKarigars();
   }, []);
 
@@ -222,14 +223,23 @@ export default function OrderEntry() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Staff Access</h2>
           <p className="text-gray-500 mb-8">Please enter the PIN to continue</p>
-          <form onSubmit={(e) => {
+          <form onSubmit={async (e) => {
             e.preventDefault();
-            if (passwordInput === "8081") {
-              setIsAuthenticated(true);
-              localStorage.setItem('vbc_home_auth_time', new Date().getTime().toString());
-            } else {
-              alert("Incorrect PIN");
-              setPasswordInput("");
+            try {
+              const res = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pin: passwordInput })
+              });
+              const data = await res.json();
+              if (res.ok) {
+                setIsAuthenticated(true);
+              } else {
+                alert(data.error || "Incorrect PIN");
+                setPasswordInput("");
+              }
+            } catch (err) {
+              alert("Network error");
             }
           }}>
             <input
@@ -317,12 +327,18 @@ export default function OrderEntry() {
                   <p className="text-slate-600 mb-6">
                     <span className="font-semibold text-slate-900">{success.customerName}'s</span> order has been logged.
                   </p>
-                  <div className="bg-emerald-50 w-full rounded-2xl p-4 mb-6 border border-emerald-100">
-                    <p className="text-sm text-emerald-800 font-medium mb-1">Coupons Allotted</p>
-                    <p className="text-3xl font-bold text-emerald-600 tracking-wider">
-                      {formatCoupons(success.startCoupon, success.coupons)}
-                    </p>
-                  </div>
+                  {success.coupons > 0 ? (
+                    <div className="bg-emerald-50 w-full rounded-2xl p-4 mb-6 border border-emerald-100">
+                      <p className="text-sm text-emerald-800 font-medium mb-1">Coupons Allotted</p>
+                      <p className="text-3xl font-bold text-emerald-600 tracking-wider">
+                        {formatCoupons(success.startCoupon, success.coupons)}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-50 w-full rounded-2xl p-4 mb-6 border border-slate-100">
+                      <p className="text-sm text-slate-800 font-medium mb-1">No coupon allotted</p>
+                    </div>
+                  )}
                   <button 
                     onClick={() => setSuccess(null)}
                     className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium transition-colors"
