@@ -30,6 +30,7 @@ interface Order {
   sariya_ordered: number;
   order_time: string;
   status: string;
+  entered_by: string;
   points_awarded: number;
   coupon_number: number;
   karigars?: { name: string; phone: string };
@@ -312,7 +313,11 @@ export default function AdminPage() {
   }
 
   const totalPointsGiven = karigars.reduce((acc, k) => acc + k.total_points, 0);
-  const totalBagsOrdered = dashboardOrders.reduce((acc, o) => acc + o.bags_ordered, 0);
+  
+  // Filter out canceled orders for total stats
+  const validDashboardOrders = dashboardOrders.filter(o => o.status !== 'cancelled' && o.status !== 'canceled');
+  const totalBagsOrdered = validDashboardOrders.reduce((acc, o) => acc + (o.bags_ordered || 0), 0);
+  const totalSariyaOrdered = validDashboardOrders.reduce((acc, o) => acc + (o.sariya_ordered || 0), 0);
 
   if (!isAuthenticated) {
     return (
@@ -476,6 +481,7 @@ export default function AdminPage() {
                             <td className="py-4 text-slate-500">
                               {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               <div className="text-xs">{new Date(o.order_time).toLocaleDateString()}</div>
+                              <div className="text-[10px] mt-1 bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded inline-block font-medium border border-slate-200">By: {o.entered_by || 'Staff'}</div>
                             </td>
                             <td className="py-4">
                               <div className="font-medium text-slate-900">{o.karigars?.name || 'Unknown'}</div>
@@ -567,6 +573,7 @@ export default function AdminPage() {
                               <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
                                 {new Date(o.order_time).toLocaleDateString()} {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                <span className="ml-1.5 px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-medium text-slate-500">By: {o.entered_by || 'Staff'}</span>
                               </div>
                             </div>
                             <div className="shrink-0 text-right max-w-[45%]">
@@ -627,10 +634,11 @@ export default function AdminPage() {
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard title="Total Karigars" value={karigars.length} icon={Users} color="text-blue-500 bg-blue-50" action={() => setActiveTab('directory')} actionText="View Directory" />
               <StatCard title="Points Distributed" value={totalPointsGiven} icon={Trophy} color="text-amber-500 bg-amber-50" />
               <StatCard title="Recent Bags (Last 200)" value={totalBagsOrdered} icon={Package} color="text-emerald-500 bg-emerald-50" />
+              <StatCard title="Recent Sariya (Last 200)" value={`₹${totalSariyaOrdered}`} icon={Activity} color="text-indigo-500 bg-indigo-50" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -675,9 +683,12 @@ export default function AdminPage() {
                     <div key={o.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:shadow-sm transition-shadow">
                       <div className="flex justify-between items-start mb-1">
                         <span className="font-medium text-slate-900">{o.karigars?.name || 'Unknown'}</span>
-                        <span className="text-xs text-slate-400">
-                          {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                        <div className="flex flex-col items-end">
+                          <span className="text-xs text-slate-400">
+                            {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded mt-0.5">By: {o.entered_by || 'Staff'}</span>
+                        </div>
                       </div>
                       <p className="text-sm text-slate-600">
                         Ordered <span className="font-medium text-slate-900">

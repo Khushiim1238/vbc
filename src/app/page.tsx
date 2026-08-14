@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, Check, User, Package, Ticket, FilePlus, Receipt, CheckCircle2, Clock, Trophy, Lock } from "lucide-react";
+import { Search, Plus, Check, User, Package, Ticket, FilePlus, Receipt, CheckCircle2, Clock, Trophy, Lock, Users, XCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 
@@ -28,7 +28,7 @@ export default function OrderEntry() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
 
-  const [activeTab, setActiveTab] = useState<'order' | 'transactions'>('order');
+  const [activeTab, setActiveTab] = useState<'order' | 'transactions' | 'customer_history'>('order');
   
   const [karigars, setKarigars] = useState<Karigar[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -56,7 +56,13 @@ export default function OrderEntry() {
 
   const [bags, setBags] = useState<number | "">("");
   const [sariya1, setSariya1] = useState<number | "">(""); // Sariya in Rs
-  const [enteredBy] = useState("Staff");
+  const [enteredBy, setEnteredBy] = useState("Staff");
+  const [staffNameInput, setStaffNameInput] = useState("");
+  
+  const [directorySearch, setDirectorySearch] = useState("");
+  const [selectedKarigarDetails, setSelectedKarigarDetails] = useState<Karigar | null>(null);
+  const [karigarHistory, setKarigarHistory] = useState<Transaction[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -65,6 +71,8 @@ export default function OrderEntry() {
         const data = await res.json();
         if (data.authenticated) {
           setIsAuthenticated(true);
+          const savedName = localStorage.getItem("vbc_staff_name") || "Staff";
+          setEnteredBy(savedName);
         }
       } catch (err) {
         console.error("Auth check failed", err);
@@ -109,6 +117,30 @@ export default function OrderEntry() {
       setLoading(false);
     }
   }
+
+  const fetchKarigarHistory = async (karigarId: string) => {
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('karigar_id', karigarId)
+        .eq('status', 'approved')
+        .order('order_time', { ascending: false });
+        
+      if (error) throw error;
+      setKarigarHistory((data as Transaction[]) || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleKarigarClick = (k: Karigar) => {
+    setSelectedKarigarDetails(k);
+    fetchKarigarHistory(k.id);
+  };
 
   const handleCreateKarigar = async () => {
     if (!newKarigarName || !newKarigarPhone) return null;
@@ -233,6 +265,8 @@ export default function OrderEntry() {
               });
               const data = await res.json();
               if (res.ok) {
+                localStorage.setItem("vbc_staff_name", staffNameInput || "Staff");
+                setEnteredBy(staffNameInput || "Staff");
                 setIsAuthenticated(true);
               } else {
                 alert(data.error || "Incorrect PIN");
@@ -243,12 +277,20 @@ export default function OrderEntry() {
             }
           }}>
             <input
+              type="text"
+              value={staffNameInput}
+              onChange={(e) => setStaffNameInput(e.target.value)}
+              className="w-full text-center text-lg p-4 bg-gray-50 border border-transparent rounded-2xl mb-4 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all font-medium"
+              placeholder="Your Name"
+              required
+            />
+            <input
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               className="w-full text-center text-3xl tracking-[0.5em] p-4 bg-gray-50 border border-transparent rounded-2xl mb-6 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all font-mono"
               placeholder="••••"
-              autoFocus
+              required
             />
             <button
               type="submit"
@@ -298,7 +340,7 @@ export default function OrderEntry() {
       <main className="max-w-4xl mx-auto px-6 py-6 lg:py-8 pb-24">
         
         {/* Tab Switcher */}
-        <div className="flex p-1 bg-slate-200/60 rounded-xl w-full max-w-sm mb-6 mx-auto sm:mx-0">
+        <div className="flex p-1 bg-slate-200/60 rounded-xl w-full max-w-lg mb-6 mx-auto sm:mx-0">
           <button
             onClick={() => setActiveTab('order')}
             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'order' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
@@ -312,6 +354,13 @@ export default function OrderEntry() {
           >
             <Clock className="w-4 h-4" />
             Transactions
+          </button>
+          <button
+            onClick={() => setActiveTab('customer_history')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'customer_history' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+          >
+            <Users className="w-4 h-4" />
+            Customer History
           </button>
         </div>
 
@@ -584,6 +633,106 @@ export default function OrderEntry() {
                   );
                 })
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Customer History Tab */}
+        {activeTab === 'customer_history' && (
+          <div className="bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                Customer History
+              </h2>
+              <div className="relative">
+                <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search name or phone..." 
+                  value={directorySearch}
+                  onChange={(e) => setDirectorySearch(e.target.value)}
+                  className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {karigars.filter(k => k.name.toLowerCase().includes(directorySearch.toLowerCase()) || k.phone.includes(directorySearch)).map((k) => (
+                <div key={k.id} onClick={() => handleKarigarClick(k)} className="p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-slate-100 hover:border-slate-200 cursor-pointer transition-all flex justify-between items-start group">
+                  <div>
+                    <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{k.name}</h3>
+                    <p className="text-sm text-slate-500">{k.phone}</p>
+                  </div>
+                  <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded-lg font-bold text-sm">
+                    {k.total_points} ⭐
+                  </div>
+                </div>
+              ))}
+              
+              {karigars.filter(k => k.name.toLowerCase().includes(directorySearch.toLowerCase()) || k.phone.includes(directorySearch)).length === 0 && (
+                <div className="col-span-full text-center py-12 text-slate-500">
+                  No customers found matching your search.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Karigar Details Modal */}
+        {selectedKarigarDetails && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedKarigarDetails(null)}>
+            <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">{selectedKarigarDetails.name}</h2>
+                  <p className="text-sm text-slate-500">{selectedKarigarDetails.phone} • Total Coupons: {selectedKarigarDetails.total_points}</p>
+                </div>
+                <button onClick={() => setSelectedKarigarDetails(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400 hover:text-slate-600">
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1 bg-slate-50/30">
+                {loadingHistory ? (
+                  <div className="flex justify-center items-center py-12 text-slate-400">
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  </div>
+                ) : karigarHistory.length === 0 ? (
+                  <div className="text-center py-12 text-slate-500 bg-white rounded-2xl border border-slate-100">
+                    No approved orders with coupons yet.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {karigarHistory.map(o => (
+                      <div key={o.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-slate-300 transition-colors">
+                        <div>
+                          <div className="text-sm text-slate-500 mb-1 flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" />
+                            {new Date(o.order_time).toLocaleString(undefined, {
+                              year: 'numeric', month: 'short', day: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                            })}
+                          </div>
+                          <div className="font-medium text-slate-700 bg-slate-50 inline-block px-3 py-1.5 rounded-lg border border-slate-100 mt-1">
+                            {[
+                              o.bags_ordered ? `${o.bags_ordered} bags` : null,
+                              o.sariya_ordered ? `₹${o.sariya_ordered} sariya` : null
+                            ].filter(Boolean).join(' & ')}
+                          </div>
+                        </div>
+                        {o.points_awarded > 0 && (
+                          <div className="shrink-0 text-left sm:text-right max-w-full sm:max-w-[50%]">
+                            <p className="text-xs text-slate-500 mb-1.5 uppercase font-semibold tracking-wider">Coupons Allotted</p>
+                            <span className="font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 inline-block shadow-sm break-words max-w-full">
+                              #{formatCoupons(o.coupon_number, o.points_awarded)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
