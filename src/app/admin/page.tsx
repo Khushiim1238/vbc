@@ -103,7 +103,7 @@ export default function AdminPage() {
           const newOrder = { ...payload.new, karigars: karigarData } as PendingOrder;
           setPendingOrders(prev => {
             if (prev.some(o => o.id === newOrder.id)) return prev;
-            return [newOrder, ...prev];
+            return [...prev, newOrder];
           });
         }
       })
@@ -141,7 +141,7 @@ export default function AdminPage() {
   const fetchData = async () => {
     try {
       const [pendingRes, karigarsRes, ordersRes] = await Promise.all([
-        supabase.from("orders").select("*, karigars(name, phone)").eq("status", "pending").order("order_time", { ascending: false }),
+        supabase.from("orders").select("*, karigars(name, phone)").eq("status", "pending").order("order_time", { ascending: true }),
         supabase.from("karigars").select("*").order("total_points", { ascending: false }),
         supabase.from("orders").select("*, karigars(name)").order("order_time", { ascending: false }).limit(20)
       ]);
