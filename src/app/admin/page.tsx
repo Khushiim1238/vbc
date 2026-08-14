@@ -39,6 +39,7 @@ interface Order {
 const formatCoupons = (start: number | null | undefined, count: number) => {
   if (!start) return count.toString();
   if (count === 1) return start.toString();
+  if (count > 3) return `${start} to ${start + count - 1}`;
   const arr = [];
   for(let i=0; i<count; i++) arr.push(start + i);
   return arr.join(", ");
@@ -568,8 +569,8 @@ export default function AdminPage() {
                                 {new Date(o.order_time).toLocaleDateString()} {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
                             </div>
-                            <div className="shrink-0 text-right">
-                              <span className="font-bold text-emerald-600 bg-emerald-100/50 px-2.5 py-1 rounded-md text-xs whitespace-nowrap">
+                            <div className="shrink-0 text-right max-w-[45%]">
+                              <span className="font-bold text-emerald-600 bg-emerald-100/50 px-2.5 py-1 rounded-md text-xs break-words inline-block text-right">
                                 C-No: {formatCoupons(o.coupon_number, o.points_awarded)}
                               </span>
                             </div>
@@ -687,7 +688,7 @@ export default function AdminPage() {
                         </span>
                       </p>
                       {o.points_awarded > 0 && (
-                        <div className="mt-2 text-xs font-medium text-emerald-600 bg-emerald-100/50 inline-block px-2 py-1 rounded-md">
+                        <div className="mt-2 text-xs font-medium text-emerald-600 bg-emerald-100/50 inline-block px-2 py-1 rounded-md break-words max-w-full">
                           C-No: {formatCoupons(o.coupon_number, o.points_awarded)} Allotted
                         </div>
                       )}
@@ -783,9 +784,9 @@ export default function AdminPage() {
                           </div>
                         </div>
                         {o.points_awarded > 0 && (
-                          <div className="shrink-0 text-left sm:text-right">
+                          <div className="shrink-0 text-left sm:text-right max-w-full sm:max-w-[50%]">
                             <p className="text-xs text-slate-500 mb-1.5 uppercase font-semibold tracking-wider">Coupons Allotted</p>
-                            <span className="font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 inline-block shadow-sm">
+                            <span className="font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 inline-block shadow-sm break-words max-w-full">
                               #{formatCoupons(o.coupon_number, o.points_awarded)}
                             </span>
                           </div>

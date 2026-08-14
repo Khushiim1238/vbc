@@ -266,6 +266,7 @@ export default function OrderEntry() {
   const formatCoupons = (start: number | null | undefined, count: number) => {
     if (!start) return count.toString();
     if (count === 1) return start.toString();
+    if (count > 3) return `${start} to ${start + count - 1}`;
     const arr = [];
     for(let i=0; i<count; i++) arr.push(start + i);
     return arr.join(", ");
