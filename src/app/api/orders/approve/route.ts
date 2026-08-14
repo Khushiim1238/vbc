@@ -41,9 +41,13 @@ export async function POST(request: Request) {
       const { data: nextCoupon, error: seqError } = await supabase.rpc('get_next_coupon');
       if (!seqError && nextCoupon) {
         startCoupon = nextCoupon;
-        // Consume subsequent sequence numbers if multiple points awarded
-        for (let i = 1; i < points_awarded; i++) {
-           await supabase.rpc('get_next_coupon');
+        // Consume subsequent sequence numbers concurrently if multiple points awarded
+        if (points_awarded > 1) {
+          const promises = [];
+          for (let i = 1; i < points_awarded; i++) {
+             promises.push(supabase.rpc('get_next_coupon'));
+          }
+          await Promise.all(promises);
         }
       }
     }

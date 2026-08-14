@@ -87,7 +87,7 @@ export default function OrderEntry() {
         .from("orders")
         .select("*, karigars(name, phone)")
         .order("order_time", { ascending: false })
-        .limit(50);
+        .limit(500);
         
       if (error) throw error;
       setTransactions((data as Transaction[]) || []);

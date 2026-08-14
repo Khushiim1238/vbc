@@ -143,7 +143,7 @@ export default function AdminPage() {
       const [pendingRes, karigarsRes, ordersRes] = await Promise.all([
         supabase.from("orders").select("*, karigars(name, phone)").eq("status", "pending").order("order_time", { ascending: true }),
         supabase.from("karigars").select("*").order("total_points", { ascending: false }),
-        supabase.from("orders").select("*, karigars(name)").order("order_time", { ascending: false }).limit(20)
+        supabase.from("orders").select("*, karigars(name)").order("order_time", { ascending: false }).limit(200)
       ]);
 
       if (pendingRes.error) throw pendingRes.error;
@@ -629,7 +629,7 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <StatCard title="Total Karigars" value={karigars.length} icon={Users} color="text-blue-500 bg-blue-50" action={() => setActiveTab('directory')} actionText="View Directory" />
               <StatCard title="Points Distributed" value={totalPointsGiven} icon={Trophy} color="text-amber-500 bg-amber-50" />
-              <StatCard title="Recent Bags (Last 20)" value={totalBagsOrdered} icon={Package} color="text-emerald-500 bg-emerald-50" />
+              <StatCard title="Recent Bags (Last 200)" value={totalBagsOrdered} icon={Package} color="text-emerald-500 bg-emerald-50" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
