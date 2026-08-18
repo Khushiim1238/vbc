@@ -69,7 +69,7 @@ export default function OrderEntry() {
       try {
         const res = await fetch('/api/auth/me');
         const data = await res.json();
-        if (data.authenticated) {
+        if (data.authenticated && data.role === 'staff') {
           setIsAuthenticated(true);
           const savedName = localStorage.getItem("vbc_staff_name") || "Staff";
           setEnteredBy(savedName);
@@ -264,12 +264,12 @@ export default function OrderEntry() {
                 body: JSON.stringify({ pin: passwordInput })
               });
               const data = await res.json();
-              if (res.ok) {
+              if (res.ok && data.role === 'staff') {
                 localStorage.setItem("vbc_staff_name", staffNameInput || "Staff");
                 setEnteredBy(staffNameInput || "Staff");
                 setIsAuthenticated(true);
               } else {
-                alert(data.error || "Incorrect PIN");
+                alert(data.error || (res.ok && data.role !== 'staff' ? "Unauthorized: This portal is for Staff only." : "Incorrect PIN"));
                 setPasswordInput("");
               }
             } catch (err) {
