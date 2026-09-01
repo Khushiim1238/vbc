@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { CheckCircle, Clock, Loader2, XCircle, CheckSquare, Activity, Trophy, Package, Users, LayoutDashboard, ListChecks, Lock, Search, ChevronRight } from "lucide-react";
+import { CheckCircle, Clock, Loader2, XCircle, CheckSquare, Activity, Trophy, Package, Users, LayoutDashboard, ListChecks, Lock, Search, ChevronRight, Download } from "lucide-react";
 
 interface PendingOrder {
   id: string;
@@ -375,6 +375,68 @@ export default function AdminPage() {
     );
   };
 
+  const downloadCouponList = async () => {
+    try {
+      const { data: allOrders, error } = await supabase
+        .from('orders')
+        .select('*, karigars(name, phone)')
+        .eq('status', 'approved')
+        .gt('points_awarded', 0)
+        .order('order_time', { ascending: false });
+
+      if (error) throw error;
+
+      if (!allOrders || allOrders.length === 0) {
+        alert("No coupons allotted yet.");
+        return;
+      }
+
+      const headers = ["Name", "Phone", "Coupons Allotted", "Date"];
+      const rows = allOrders.map((order: any) => {
+        const name = order.karigars?.name || 'Unknown';
+        const phone = order.karigars?.phone || '';
+        const coupons = formatCoupons(order.coupon_number, order.points_awarded);
+        const date = new Date(order.order_time).toLocaleDateString();
+        return `"${name}","${phone}","${coupons}","${date}"`;
+      });
+
+      const csvContent = [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `coupon_list_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Failed to download coupon list", err);
+      alert("Failed to download coupon list");
+    }
+  };
+
+  const downloadKarigarList = () => {
+    if (karigars.length === 0) {
+      alert("No customers found.");
+      return;
+    }
+
+    const headers = ["Name", "Phone", "Total Coupons"];
+    const rows = karigars.map((k) => {
+      return `"${k.name}","${k.phone}","${k.total_points}"`;
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `customer_directory_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">Loading data...</div>;
@@ -712,10 +774,16 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Leaderboard */}
               <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100">
-                <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-amber-500" />
-                  Karigar Leaderboard
-                </h2>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-amber-500" />
+                    Karigar Leaderboard
+                  </h2>
+                  <button onClick={downloadCouponList} className="inline-flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-all shadow-sm">
+                    <Download className="w-4 h-4" />
+                    Export Coupons
+                  </button>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
@@ -787,15 +855,21 @@ export default function AdminPage() {
                 <Users className="w-5 h-5 text-blue-500" />
                 Customer Directory
               </h2>
-              <div className="relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input 
-                  type="text" 
-                  placeholder="Search name or phone..." 
-                  value={directorySearch}
-                  onChange={(e) => setDirectorySearch(e.target.value)}
-                  className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64"
-                />
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative">
+                  <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search name or phone..." 
+                    value={directorySearch}
+                    onChange={(e) => setDirectorySearch(e.target.value)}
+                    className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64"
+                  />
+                </div>
+                <button onClick={downloadKarigarList} className="inline-flex items-center justify-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-sm shrink-0">
+                  <Download className="w-4 h-4" />
+                  Export Directory
+                </button>
               </div>
             </div>
             
