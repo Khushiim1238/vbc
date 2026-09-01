@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 
-export async function PUT(request: Request, context: { params: { id: string } }) {
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
   const role = cookieStore.get('vbc_role')?.value;
   // Allow both admin and staff
@@ -12,7 +12,7 @@ export async function PUT(request: Request, context: { params: { id: string } })
 
   try {
     const { name, phone } = await request.json();
-    const id = context.params.id;
+    const { id } = await context.params;
 
     if (!name || !phone) {
       return NextResponse.json({ error: 'Name and phone are required' }, { status: 400 });
@@ -38,7 +38,7 @@ export async function PUT(request: Request, context: { params: { id: string } })
   }
 }
 
-export async function DELETE(request: Request, context: { params: { id: string } }) {
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
   const role = cookieStore.get('vbc_role')?.value;
   // Allow both admin and staff
@@ -47,7 +47,7 @@ export async function DELETE(request: Request, context: { params: { id: string }
   }
 
   try {
-    const id = context.params.id;
+    const { id } = await context.params;
 
     const { error } = await supabase
       .from('karigars')
