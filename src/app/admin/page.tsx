@@ -70,6 +70,10 @@ export default function AdminPage() {
   const [karigarHistory, setKarigarHistory] = useState<Order[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   
+  const [editingKarigarId, setEditingKarigarId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  
   const [loading, setLoading] = useState(true);
   const [bulkApprovedOrders, setBulkApprovedOrders] = useState<any[]>([]);
   const karigarsRef = useRef<Karigar[]>([]);
@@ -254,6 +258,70 @@ export default function AdminPage() {
   const handleKarigarClick = (k: Karigar) => {
     setSelectedKarigarDetails(k);
     fetchKarigarHistory(k.id);
+  };
+
+  const handleEditKarigar = (k: Karigar) => {
+    setEditingKarigarId(k.id);
+    setEditName(k.name);
+    setEditPhone(k.phone);
+  };
+
+  const handleSaveKarigar = async (id: string) => {
+    try {
+      const res = await fetch(`/api/karigars/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editName, phone: editPhone }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setKarigars(prev => prev.map(k => k.id === id ? { ...k, name: editName, phone: editPhone } : k));
+        if (selectedKarigarDetails?.id === id) {
+          setSelectedKarigarDetails({ ...selectedKarigarDetails, name: editName, phone: editPhone });
+        }
+        setEditingKarigarId(null);
+      } else {
+        alert(data.error || "Failed to update Karigar");
+      }
+    } catch (err) {
+      alert("Something went wrong");
+    }
+  };
+
+  const handleDeleteKarigar = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this Karigar? All their orders and points will also be deleted.")) return;
+    try {
+      const res = await fetch(`/api/karigars/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok) {
+        setKarigars(prev => prev.filter(k => k.id !== id));
+        setSelectedKarigarDetails(null);
+      } else {
+        alert(data.error || "Failed to delete Karigar");
+      }
+    } catch (err) {
+      alert("Something went wrong");
+    }
+  };
+
+  const handleResendWhatsApp = (order: Order, karigar: Karigar) => {
+    let orderDetails = "";
+    if (order.bags_ordered > 0 && order.sariya_ordered > 0) orderDetails = `सीमेंट: ${order.bags_ordered} बैग\nसरिया: ₹${order.sariya_ordered}`;
+    else if (order.bags_ordered > 0) orderDetails = `सीमेंट: ${order.bags_ordered} बैग`;
+    else if (order.sariya_ordered > 0) orderDetails = `सरिया: ₹${order.sariya_ordered}`;
+
+    let couponMsg = "";
+    if (order.points_awarded > 0) {
+      const cNo = formatCoupons(order.coupon_number, order.points_awarded);
+      couponMsg = `🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिले हैं कूपन नंबर : ${cNo}\nआपके अब तक कुल कूपन हैं : ${karigar.total_points}\n\n`;
+    } else {
+      couponMsg = `No coupon allotted\nआपके अब तक कुल कूपन हैं : ${karigar.total_points}\n\n`;
+    }
+
+    const msg = `नमस्ते ${karigar.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n${couponMsg}धन्यवाद! वर्धमान ग्रुप टोंक`;
+    let phone = karigar.phone.replace(/\D/g, '');
+    if (phone.length === 10) phone = '91' + phone;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const handleBulkApprove = async () => {
@@ -757,12 +825,27 @@ export default function AdminPage() {
         {selectedKarigarDetails && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedKarigarDetails(null)}>
             <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">{selectedKarigarDetails.name}</h2>
-                  <p className="text-sm text-slate-500">{selectedKarigarDetails.phone} • Total Coupons: {selectedKarigarDetails.total_points}</p>
-                </div>
-                <button onClick={() => setSelectedKarigarDetails(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400 hover:text-slate-600">
+              <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50/50 gap-4">
+                {editingKarigarId === selectedKarigarDetails.id ? (
+                  <div className="flex-1 w-full space-y-3">
+                    <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border rounded-lg font-medium text-slate-900" placeholder="Name" />
+                    <input type="text" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="w-full p-2 border rounded-lg text-sm text-slate-600" placeholder="Phone" />
+                    <div className="flex gap-2 mt-2">
+                      <button onClick={() => handleSaveKarigar(selectedKarigarDetails.id)} className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Save</button>
+                      <button onClick={() => setEditingKarigarId(null)} className="px-4 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">{selectedKarigarDetails.name}</h2>
+                    <p className="text-sm text-slate-500">{selectedKarigarDetails.phone} • Total Coupons: {selectedKarigarDetails.total_points}</p>
+                    <div className="flex gap-3 mt-3">
+                      <button onClick={() => handleEditKarigar(selectedKarigarDetails)} className="text-sm text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                      <button onClick={() => handleDeleteKarigar(selectedKarigarDetails.id)} className="text-sm text-red-600 hover:text-red-800 font-medium">Delete</button>
+                    </div>
+                  </div>
+                )}
+                <button onClick={() => setSelectedKarigarDetails(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400 hover:text-slate-600 shrink-0">
                   <XCircle className="w-6 h-6" />
                 </button>
               </div>
@@ -794,14 +877,19 @@ export default function AdminPage() {
                             ].filter(Boolean).join(' & ')}
                           </div>
                         </div>
-                        {o.points_awarded > 0 && (
-                          <div className="shrink-0 text-left sm:text-right max-w-full sm:max-w-[50%]">
-                            <p className="text-xs text-slate-500 mb-1.5 uppercase font-semibold tracking-wider">Coupons Allotted</p>
-                            <span className="font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 inline-block shadow-sm break-words max-w-full">
-                              #{formatCoupons(o.coupon_number, o.points_awarded)}
-                            </span>
-                          </div>
-                        )}
+                        <div className="flex flex-col items-end gap-2 shrink-0 max-w-full sm:max-w-[50%]">
+                          {o.points_awarded > 0 && (
+                            <div className="text-left sm:text-right w-full">
+                              <p className="text-xs text-slate-500 mb-1.5 uppercase font-semibold tracking-wider">Coupons Allotted</p>
+                              <span className="font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 inline-block shadow-sm break-words max-w-full">
+                                #{formatCoupons(o.coupon_number, o.points_awarded)}
+                              </span>
+                            </div>
+                          )}
+                          <button onClick={() => handleResendWhatsApp(o, selectedKarigarDetails)} className="mt-2 text-xs font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 transition-colors">
+                            Resend WhatsApp
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
