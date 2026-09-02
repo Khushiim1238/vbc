@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { CheckCircle, Clock, Loader2, XCircle, CheckSquare, Activity, Trophy, Package, Users, LayoutDashboard, ListChecks, Lock, Search, ChevronRight, Download } from "lucide-react";
+import { CheckCircle, Clock, Loader2, XCircle, CheckSquare, Activity, Trophy, Package, Users, LayoutDashboard, ListChecks, Lock, Search, ChevronRight, Download, Phone, MessageCircle } from "lucide-react";
 
 interface PendingOrder {
   id: string;
@@ -435,6 +435,18 @@ export default function AdminPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleFollowUpClick = (e: React.MouseEvent, type: 'call' | 'whatsapp', phone: string) => {
+    e.stopPropagation();
+    let cleanedPhone = phone.replace(/\D/g, '');
+    if (cleanedPhone.length === 10) cleanedPhone = '91' + cleanedPhone;
+    
+    if (type === 'call') {
+      window.location.href = `tel:+${cleanedPhone}`;
+    } else {
+      window.open(`https://wa.me/${cleanedPhone}`, '_blank');
+    }
   };
 
 
@@ -878,7 +890,15 @@ export default function AdminPage() {
                 <div key={k.id} onClick={() => handleKarigarClick(k)} className="p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-slate-100 hover:border-slate-200 cursor-pointer transition-all flex justify-between items-start group">
                   <div>
                     <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{k.name}</h3>
-                    <p className="text-sm text-slate-500">{k.phone}</p>
+                    <p className="text-sm text-slate-500 mb-2">{k.phone}</p>
+                    <div className="flex gap-2 mt-1">
+                      <button onClick={(e) => handleFollowUpClick(e, 'call', k.phone)} className="p-1.5 bg-white border border-slate-200 hover:bg-blue-50 rounded-lg shadow-sm transition-colors" title="Call Customer">
+                        <img src="/call.webp" alt="Call" className="w-4 h-4 object-contain mix-blend-multiply contrast-125 drop-shadow-sm" />
+                      </button>
+                      <button onClick={(e) => handleFollowUpClick(e, 'whatsapp', k.phone)} className="p-1.5 bg-white border border-slate-200 hover:bg-emerald-50 rounded-lg shadow-sm transition-colors" title="WhatsApp Message">
+                        <img src="/WhatsApp.webp" alt="WhatsApp" className="w-4 h-4 object-contain" />
+                      </button>
+                    </div>
                   </div>
                   <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded-lg font-bold text-sm">
                     {k.total_points} ⭐
@@ -913,7 +933,17 @@ export default function AdminPage() {
                   <div>
                     <h2 className="text-xl font-bold text-slate-900">{selectedKarigarDetails.name}</h2>
                     <p className="text-sm text-slate-500">{selectedKarigarDetails.phone} • Total Coupons: {selectedKarigarDetails.total_points}</p>
-                    <div className="flex gap-3 mt-3">
+                    <div className="flex gap-2 mt-3 mb-3">
+                      <button onClick={(e) => handleFollowUpClick(e, 'call', selectedKarigarDetails.phone)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-800 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors">
+                        <img src="/call.webp" alt="Call" className="w-4 h-4 object-contain mix-blend-multiply contrast-125 drop-shadow-sm" />
+                        Call
+                      </button>
+                      <button onClick={(e) => handleFollowUpClick(e, 'whatsapp', selectedKarigarDetails.phone)} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 rounded-lg text-sm font-medium transition-colors">
+                        <img src="/WhatsApp.webp" alt="WhatsApp" className="w-4 h-4 object-contain" />
+                        WhatsApp
+                      </button>
+                    </div>
+                    <div className="flex gap-3 mt-3 pt-3 border-t border-slate-200/60">
                       <button onClick={() => handleEditKarigar(selectedKarigarDetails)} className="text-sm text-blue-600 hover:text-blue-800 font-medium">Edit</button>
                       <button onClick={() => handleDeleteKarigar(selectedKarigarDetails.id)} className="text-sm text-red-600 hover:text-red-800 font-medium">Delete</button>
                     </div>
