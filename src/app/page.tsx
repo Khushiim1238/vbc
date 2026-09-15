@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, Plus, Check, User, Package, Ticket, FilePlus, Receipt, CheckCircle2, Clock, Trophy, Lock, Users, XCircle, Loader2, Phone, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 interface Karigar {
   id: string;
@@ -166,11 +167,12 @@ export default function OrderEntry() {
           setSelectedKarigarDetails({ ...selectedKarigarDetails, name: editName, phone: editPhone });
         }
         setEditingKarigarId(null);
+        toast.success("Karigar updated");
       } else {
-        alert(data.error || "Failed to update Karigar");
+        toast.error(data.error || "Failed to update Karigar");
       }
     } catch (err) {
-      alert("Something went wrong");
+      toast.error("Something went wrong");
     }
   };
 
@@ -182,11 +184,12 @@ export default function OrderEntry() {
       if (res.ok) {
         setKarigars(prev => prev.filter(k => k.id !== id));
         setSelectedKarigarDetails(null);
+        toast.success("Karigar deleted");
       } else {
-        alert(data.error || "Failed to delete Karigar");
+        toast.error(data.error || "Failed to delete Karigar");
       }
     } catch (err) {
-      alert("Something went wrong");
+      toast.error("Something went wrong");
     }
   };
 
@@ -196,15 +199,20 @@ export default function OrderEntry() {
     else if (order.bags_ordered > 0) orderDetails = `सीमेंट: ${order.bags_ordered} बैग`;
     else if (order.sariya_ordered > 0) orderDetails = `सरिया: ₹${order.sariya_ordered}`;
 
-    let couponMsg = "";
+    let msg = `नमस्ते ${karigar.name} जी! 🙏\n\n`;
+    if (orderDetails) {
+      msg += `✅ *ऑर्डर स्वीकृत:* ${orderDetails.replace('\n', ', ')}\n`;
+    }
+    msg += `परफैक्ट प्लस सीमेंट को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
+
     if (order.points_awarded > 0) {
       const cNo = formatCoupons(order.coupon_number, order.points_awarded);
-      couponMsg = `🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिले हैं कूपन नंबर : ${cNo}\nआपके अब तक कुल कूपन हैं : ${karigar.total_points}\n\n`;
+      msg += `🎟️ आपको मिले है कूपन नं: *${cNo}*\n🏆 आपके अब तक कुल कूपन: *${karigar.total_points}*\n\n"ख़ुशियों की बरसात" योजना अवधि (*1 जुलाई 2026* से *30 अगस्त 2027*) में, मोटरसाइकिल, फ्रिज, वाशिंग मशीन, जैसे कई आकर्षक उपहार जीतने के लिए अपने कूपन बढ़ाते रहें!\n\n`;
     } else {
-      couponMsg = `No coupon allotted\nआपके अब तक कुल कूपन हैं : ${karigar.total_points}\n\n`;
+      msg += `🏆 आपके अब तक कुल कूपन: *${karigar.total_points}*\n\n`;
     }
-
-    const msg = `नमस्ते ${karigar.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n${couponMsg}धन्यवाद! वर्धमान ग्रुप टोंक`;
+    
+    msg += `हार्दिक बधाई व शुभकामनाएं\n— वर्धमान ग्रुप, टोंक`;
     let phone = karigar.phone.replace(/\D/g, '');
     if (phone.length === 10) phone = '91' + phone;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -232,14 +240,15 @@ export default function OrderEntry() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Failed to create Karigar");
+        toast.error(data.error || "Failed to create Karigar");
         return null;
       }
       setKarigars(prev => [...prev, data.karigar].sort((a, b) => a.name.localeCompare(b.name)));
+      toast.success("Karigar created");
       return { id: data.karigar.id, name: data.karigar.name };
     } catch (err) {
       console.error("Error creating karigar:", err);
-      alert("Something went wrong creating the Karigar");
+      toast.error("Something went wrong creating the Karigar");
       return null;
     }
   };
@@ -257,7 +266,7 @@ export default function OrderEntry() {
     }
 
     if (!targetKarigarId) {
-      alert("Please select or add a customer");
+      toast.error("Please select or add a customer");
       return;
     }
 
@@ -306,11 +315,11 @@ export default function OrderEntry() {
 
         // Do NOT auto-hide success; the user will click "Done" on the overlay modal
       } else {
-        alert(data.error || "Failed to submit order");
+        toast.error(data.error || "Failed to submit order");
       }
     } catch (err) {
       console.error("Error submitting order:", err);
-      alert("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setSubmitting(false);
     }
@@ -349,11 +358,11 @@ export default function OrderEntry() {
                 setEnteredBy(staffNameInput || "Staff");
                 setIsAuthenticated(true);
               } else {
-                alert(data.error || (res.ok && data.role !== 'staff' ? "Unauthorized: This portal is for Staff only." : "Incorrect PIN"));
+                toast.error(data.error || (res.ok && data.role !== 'staff' ? "Unauthorized: This portal is for Staff only." : "Incorrect PIN"));
                 setPasswordInput("");
               }
             } catch (err) {
-              alert("Network error");
+              toast.error("Network error");
             }
           }}>
             <input

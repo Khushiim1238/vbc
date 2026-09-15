@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { CheckCircle, Clock, Loader2, XCircle, CheckSquare, Activity, Trophy, Package, Users, LayoutDashboard, ListChecks, Lock, Search, ChevronRight, Download, Phone, MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 
 interface PendingOrder {
   id: string;
@@ -201,11 +203,12 @@ export default function AdminPage() {
           const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
           window.open(url, '_blank');
         }
+        toast.success("Order approved successfully");
       } else {
-        alert(data.error || "Failed to approve order");
+        toast.error(data.error || "Failed to approve order");
       }
     } catch (err) {
-      alert("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setProcessingId(null);
     }
@@ -226,11 +229,12 @@ export default function AdminPage() {
       if (data.success) {
         setPendingOrders(prev => prev.filter(o => o.id !== orderId));
         setSelectedOrderIds(prev => prev.filter(id => id !== orderId));
+        toast.success("Order cancelled");
       } else {
-        alert(data.error || "Failed to cancel order");
+        toast.error(data.error || "Failed to cancel order");
       }
     } catch (err) {
-      alert("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setCancelProcessingId(null);
     }
@@ -280,11 +284,12 @@ export default function AdminPage() {
           setSelectedKarigarDetails({ ...selectedKarigarDetails, name: editName, phone: editPhone });
         }
         setEditingKarigarId(null);
+        toast.success("Karigar updated");
       } else {
-        alert(data.error || "Failed to update Karigar");
+        toast.error(data.error || "Failed to update Karigar");
       }
     } catch (err) {
-      alert("Something went wrong");
+      toast.error("Something went wrong");
     }
   };
 
@@ -296,11 +301,12 @@ export default function AdminPage() {
       if (res.ok) {
         setKarigars(prev => prev.filter(k => k.id !== id));
         setSelectedKarigarDetails(null);
+        toast.success("Karigar deleted");
       } else {
-        alert(data.error || "Failed to delete Karigar");
+        toast.error(data.error || "Failed to delete Karigar");
       }
     } catch (err) {
-      alert("Something went wrong");
+      toast.error("Something went wrong");
     }
   };
 
@@ -310,15 +316,20 @@ export default function AdminPage() {
     else if (order.bags_ordered > 0) orderDetails = `सीमेंट: ${order.bags_ordered} बैग`;
     else if (order.sariya_ordered > 0) orderDetails = `सरिया: ₹${order.sariya_ordered}`;
 
-    let couponMsg = "";
+    let msg = `नमस्ते ${karigar.name} जी! 🙏\n\n`;
+    if (orderDetails) {
+      msg += `✅ *ऑर्डर स्वीकृत:* ${orderDetails.replace('\n', ', ')}\n`;
+    }
+    msg += `परफैक्ट प्लस सीमेंट को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
+
     if (order.points_awarded > 0) {
       const cNo = formatCoupons(order.coupon_number, order.points_awarded);
-      couponMsg = `🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिले हैं कूपन नंबर : ${cNo}\nआपके अब तक कुल कूपन हैं : ${karigar.total_points}\n\n`;
+      msg += `🎟️ आपको मिले है कूपन नं: *${cNo}*\n🏆 आपके अब तक कुल कूपन: *${karigar.total_points}*\n\n"ख़ुशियों की बरसात" योजना अवधि (*1 जुलाई 2026* से *30 अगस्त 2027*) में, मोटरसाइकिल, फ्रिज, वाशिंग मशीन, जैसे कई आकर्षक उपहार जीतने के लिए अपने कूपन बढ़ाते रहें!\n\n`;
     } else {
-      couponMsg = `No coupon allotted\nआपके अब तक कुल कूपन हैं : ${karigar.total_points}\n\n`;
+      msg += `🏆 आपके अब तक कुल कूपन: *${karigar.total_points}*\n\n`;
     }
-
-    const msg = `नमस्ते ${karigar.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n${couponMsg}धन्यवाद! वर्धमान ग्रुप टोंक`;
+    
+    msg += `हार्दिक बधाई व शुभकामनाएं\n— वर्धमान ग्रुप, टोंक`;
     let phone = karigar.phone.replace(/\D/g, '');
     if (phone.length === 10) phone = '91' + phone;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -356,8 +367,9 @@ export default function AdminPage() {
     
     if (successData.length > 0) {
       setBulkApprovedOrders(successData);
+      toast.success(`Bulk approved ${successData.length} orders`);
     } else {
-      alert("Bulk approval complete.");
+      toast.success("Bulk approval complete.");
     }
   };
 
@@ -387,7 +399,7 @@ export default function AdminPage() {
       if (error) throw error;
 
       if (!allOrders || allOrders.length === 0) {
-        alert("No coupons allotted yet.");
+        toast.error("No coupons allotted yet.");
         return;
       }
 
@@ -411,13 +423,13 @@ export default function AdminPage() {
       document.body.removeChild(link);
     } catch (err) {
       console.error("Failed to download coupon list", err);
-      alert("Failed to download coupon list");
+      toast.error("Failed to download coupon list");
     }
   };
 
   const downloadKarigarList = () => {
     if (karigars.length === 0) {
-      alert("No customers found.");
+      toast.error("No customers found.");
       return;
     }
 
@@ -483,11 +495,11 @@ export default function AdminPage() {
                 setIsAuthenticated(true);
                 fetchData(); // Fetch data after successful login
               } else {
-                alert(data.error || "Incorrect PIN or Unauthorized");
+                toast.error(data.error || "Incorrect PIN or Unauthorized");
                 setPasswordInput("");
               }
             } catch (err) {
-              alert("Network error");
+              toast.error("Network error");
             }
           }}>
             <input
@@ -511,8 +523,52 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-900 pb-24">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-emerald-100 selection:text-emerald-900">
+      {/* Elegant Header */}
+      <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex flex-col sm:flex-row items-center justify-between gap-4 relative">
+          
+          <div className="flex items-center justify-center gap-1 w-full sm:w-auto sm:absolute sm:left-1/2 sm:-translate-x-1/2 pointer-events-none">
+            <Image
+              src="/v_logo.png"
+              alt="Vardhman Logo"
+              width={100}
+              height={40}
+              className="object-contain pointer-events-auto"
+            />
+            <span className="font-semibold text-lg tracking-tight text-gray-900 leading-tight pointer-events-auto"> Admin <span className="text-orange-500 font-light">Panel</span></span>
+          </div>
+          
+          <div className="hidden sm:block"></div> {/* Spacer to push tabs to the right */}
+          
+          {/* Custom Tab Switcher in Header */}
+          <div className="flex p-1 bg-slate-100/80 rounded-xl w-full sm:w-auto z-10">
+            <button
+              onClick={() => setActiveTab('approvals')}
+              className={`flex-1 sm:flex-none py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'approvals' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+            >
+              <ListChecks className="w-4 h-4" />
+              Approvals {pendingOrders.length > 0 && <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">{pendingOrders.length}</span>}
+            </button>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`flex-1 sm:flex-none py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'dashboard' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab('directory')}
+              className={`flex-1 sm:flex-none py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'directory' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+            >
+              <Search className="w-4 h-4" />
+              Directory
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-8 pb-24">
         
         {adminError && activeTab === 'approvals' && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
@@ -520,36 +576,6 @@ export default function AdminPage() {
             <span className="block sm:inline">{adminError}</span>
           </div>
         )}
-        
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
-          <p className="text-slate-500 mt-1">Manage orders, approve points, and view performance.</p>
-        </div>
-
-        {/* Custom Tab Switcher */}
-        <div className="flex p-1 bg-slate-200/60 rounded-xl w-full max-w-sm mb-6">
-          <button
-            onClick={() => setActiveTab('approvals')}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'approvals' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-          >
-            <ListChecks className="w-4 h-4" />
-            Pending Approvals {pendingOrders.length > 0 && <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">{pendingOrders.length}</span>}
-          </button>
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'dashboard' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab('directory')}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'directory' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-          >
-            <Search className="w-4 h-4" />
-            Directory
-          </button>
-        </div>
 
         {/* Approvals Tab */}
         {activeTab === 'approvals' && (
@@ -588,11 +614,11 @@ export default function AdminPage() {
             ) : (
               <div className="space-y-4">
                 {/* Desktop View (Table) */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-left">
+                <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-100 shadow-sm bg-white">
+                  <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-100 text-sm text-slate-500 bg-slate-50/50">
-                        <th className="pb-3 pt-3 pl-4 w-12 rounded-tl-xl">
+                      <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/80">
+                        <th className="py-4 pl-6 w-12">
                           <input 
                             type="checkbox" 
                             className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
@@ -600,19 +626,19 @@ export default function AdminPage() {
                             onChange={toggleSelectAll}
                           />
                         </th>
-                        <th className="pb-3 pt-3 font-medium">Time</th>
-                        <th className="pb-3 pt-3 font-medium">Karigar</th>
-                        <th className="pb-3 pt-3 font-medium">Purchases</th>
-                        <th className="pb-3 pt-3 font-medium text-right">Points to Award</th>
-                        <th className="pb-3 pt-3 font-medium text-right pr-4 rounded-tr-xl">Action</th>
+                        <th className="py-4 px-4 font-semibold">Time</th>
+                        <th className="py-4 px-4 font-semibold">Karigar</th>
+                        <th className="py-4 px-4 font-semibold">Purchases</th>
+                        <th className="py-4 px-4 font-semibold text-right">Points to Award</th>
+                        <th className="py-4 px-6 font-semibold text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {pendingOrders.map((o) => {
                         const isSelected = selectedOrderIds.includes(o.id);
                         return (
-                          <tr key={o.id} className={`text-sm transition-colors ${isSelected ? 'bg-emerald-50/40' : 'hover:bg-slate-50/50'}`}>
-                            <td className="py-4 pl-4">
+                          <tr key={o.id} className={`text-sm transition-colors ${isSelected ? 'bg-emerald-50/60' : 'hover:bg-slate-50/60'}`}>
+                            <td className="py-4 pl-6 border-b border-slate-50">
                               <input 
                                 type="checkbox" 
                                 className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
@@ -620,55 +646,59 @@ export default function AdminPage() {
                                 onChange={() => toggleSelectOrder(o.id)}
                               />
                             </td>
-                            <td className="py-4 text-slate-500">
-                              {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              <div className="text-xs">{new Date(o.order_time).toLocaleDateString()}</div>
-                              <div className="text-[10px] mt-1 bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded inline-block font-medium border border-slate-200">By: {o.entered_by || 'Staff'}</div>
+                            <td className="py-4 px-4 text-slate-500 border-b border-slate-50">
+                              <div className="font-medium text-slate-900">{new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                              <div className="text-xs mt-0.5">{new Date(o.order_time).toLocaleDateString()}</div>
+                              <div className="text-[10px] mt-1.5 bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full inline-block font-medium border border-slate-200">By: {o.entered_by || 'Staff'}</div>
                             </td>
-                            <td className="py-4">
-                              <div className="font-medium text-slate-900">{o.karigars?.name || 'Unknown'}</div>
-                              <div className="text-xs text-slate-400">{o.karigars?.phone}</div>
+                            <td className="py-4 px-4 border-b border-slate-50">
+                              <div className="font-semibold text-slate-900">{o.karigars?.name || 'Unknown'}</div>
+                              <div className="text-xs text-slate-500 mt-0.5">{o.karigars?.phone}</div>
                             </td>
-                            <td className="py-4 text-slate-600">
-                              {[
-                                o.bags_ordered > 0 ? `${o.bags_ordered} bags` : null,
-                                o.sariya_ordered > 0 ? `₹${o.sariya_ordered} sariya` : null
-                              ].filter(Boolean).join(' & ')}
+                            <td className="py-4 px-4 text-slate-700 border-b border-slate-50">
+                              <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg text-sm font-medium">
+                                {[
+                                  o.bags_ordered > 0 ? `${o.bags_ordered} bags` : null,
+                                  o.sariya_ordered > 0 ? `₹${o.sariya_ordered} sariya` : null
+                                ].filter(Boolean).join(' & ')}
+                              </div>
                             </td>
-                            <td className="py-4 text-right">
-                              <span className="font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md text-xs">
+                            <td className="py-4 px-4 text-right border-b border-slate-50">
+                              <span className="font-bold text-emerald-700 bg-emerald-100/80 border border-emerald-200/50 px-3 py-1.5 rounded-lg text-xs tracking-wide">
                                 C-No: {formatCoupons(o.coupon_number, o.points_awarded)}
                               </span>
                             </td>
-                            <td className="py-4 pr-4 text-right flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => handleCancel(o.id)}
-                                disabled={cancelProcessingId === o.id || processingId === o.id || isBulkProcessing}
-                                className="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50"
-                              >
-                                {cancelProcessingId === o.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <XCircle className="w-4 h-4" />
-                                    <span className="hidden xl:inline">Cancel</span>
-                                  </>
-                                )}
-                              </button>
-                              <button
-                                onClick={() => handleApprove(o.id)}
-                                disabled={processingId === o.id || cancelProcessingId === o.id || isBulkProcessing}
-                                className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50"
-                              >
-                                {processingId === o.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <CheckCircle className="w-4 h-4" />
-                                    <span className="hidden xl:inline">Approve</span>
-                                  </>
-                                )}
-                              </button>
+                            <td className="py-4 px-6 text-right border-b border-slate-50">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => handleCancel(o.id)}
+                                  disabled={cancelProcessingId === o.id || processingId === o.id || isBulkProcessing}
+                                  className="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-xl font-medium transition-colors disabled:opacity-50"
+                                >
+                                  {cancelProcessingId === o.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <XCircle className="w-4 h-4" />
+                                      <span className="hidden xl:inline">Cancel</span>
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => handleApprove(o.id)}
+                                  disabled={processingId === o.id || cancelProcessingId === o.id || isBulkProcessing}
+                                  className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 shadow-sm"
+                                >
+                                  {processingId === o.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                      <span className="hidden xl:inline">Approve</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -783,9 +813,9 @@ export default function AdminPage() {
               <StatCard title="Recent Sariya (Last 200)" value={`₹${totalSariyaOrdered}`} icon={Activity} color="text-indigo-500 bg-indigo-50" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="w-full">
               {/* Leaderboard */}
-              <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100">
+              <div className="bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-semibold flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-amber-500" />
@@ -817,42 +847,6 @@ export default function AdminPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              </div>
-
-              {/* Activity Feed */}
-              <div className="bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100 h-[600px] flex flex-col">
-                <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-sky-500" />
-                  Live Activity
-                </h2>
-                <div className="flex-1 overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-slate-200">
-                  {dashboardOrders.map((o) => (
-                    <div key={o.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:shadow-sm transition-shadow">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-medium text-slate-900">{o.karigars?.name || 'Unknown'}</span>
-                        <div className="flex flex-col items-end">
-                          <span className="text-xs text-slate-400">
-                            {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          <span className="text-[10px] text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded mt-0.5">By: {o.entered_by || 'Staff'}</span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-slate-600">
-                        Ordered <span className="font-medium text-slate-900">
-                          {[
-                            o.bags_ordered ? `${o.bags_ordered} bags` : null,
-                            o.sariya_ordered ? `₹${o.sariya_ordered} sariya` : null
-                          ].filter(Boolean).join(' & ')}
-                        </span>
-                      </p>
-                      {o.points_awarded > 0 && (
-                        <div className="mt-2 text-xs font-medium text-emerald-600 bg-emerald-100/50 inline-block px-2 py-1 rounded-md break-words max-w-full">
-                          C-No: {formatCoupons(o.coupon_number, o.points_awarded)} Allotted
-                        </div>
-                      )}
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
@@ -1030,14 +1024,19 @@ export default function AdminPage() {
                         else if (w.bags > 0) orderDetails = `सीमेंट: ${w.bags} बैग`;
                         else if (w.sariya > 0) orderDetails = `सरिया: ₹${w.sariya}`;
 
-                        let couponMsg = "";
-                        if (w.pointsAwarded > 0) {
-                          couponMsg = `🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिले हैं कूपन नंबर : ${w.couponCode}\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\n`;
-                        } else {
-                          couponMsg = `No coupon allotted\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\n`;
+                        let msg = `नमस्ते ${w.name} जी! 🙏\n\n`;
+                        if (orderDetails) {
+                          msg += `✅ *ऑर्डर स्वीकृत:* ${orderDetails.replace('\n', ', ')}\n`;
                         }
+                        msg += `परफैक्ट प्लस सीमेंट को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
 
-                        const msg = `नमस्ते ${w.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n${couponMsg}धन्यवाद! वर्धमान ग्रुप टोंक`;
+                        if (w.pointsAwarded > 0) {
+                          msg += `🎟️ आपको मिले है कूपन नं: *${w.couponCode}*\n🏆 आपके अब तक कुल कूपन: *${w.totalPoints}*\n\n"ख़ुशियों की बरसात" योजना अवधि (*1 जुलाई 2026* से *30 अगस्त 2027*) में, मोटरसाइकिल, फ्रिज, वाशिंग मशीन, जैसे कई आकर्षक उपहार जीतने के लिए अपने कूपन बढ़ाते रहें!\n\n`;
+                        } else {
+                          msg += `🏆 आपके अब तक कुल कूपन: *${w.totalPoints}*\n\n`;
+                        }
+                        
+                        msg += `हार्दिक बधाई व शुभकामनाएं\n— वर्धमान ग्रुप, टोंक`;
                         let phone = w.phone.replace(/\D/g, '');
                         if (phone.length === 10) phone = '91' + phone;
                         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -1056,8 +1055,8 @@ export default function AdminPage() {
           </div>
         )}
         
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
