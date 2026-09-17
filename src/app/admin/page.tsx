@@ -526,44 +526,52 @@ export default function AdminPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-emerald-100 selection:text-emerald-900">
       {/* Elegant Header */}
       <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex flex-col sm:flex-row items-center justify-between gap-4 relative">
+        <div className="max-w-7xl mx-auto px-2 md:px-4 flex flex-col sm:flex-row items-center justify-between">
           
-          <div className="flex items-center justify-center gap-1 w-full sm:w-auto sm:absolute sm:left-1/2 sm:-translate-x-1/2 pointer-events-none">
+          <div className="w-full sm:w-auto flex items-center justify-between py-1 sm:py-2">
             <Image
               src="/v_logo.png"
               alt="Vardhman Logo"
-              width={100}
-              height={40}
-              className="object-contain pointer-events-auto"
+              width={90}
+              height={36}
+              className="object-contain"
             />
-            <span className="font-semibold text-lg tracking-tight text-gray-900 leading-tight pointer-events-auto"> Admin <span className="text-orange-500 font-light">Panel</span></span>
+            {/* Mobile Admin Text (Top Right) */}
+            <span className="font-semibold text-base tracking-tight text-gray-900 leading-tight sm:hidden">
+              Admin <span className="text-orange-500 font-light">Panel</span>
+            </span>
           </div>
           
-          <div className="hidden sm:block"></div> {/* Spacer to push tabs to the right */}
-          
           {/* Custom Tab Switcher in Header */}
-          <div className="flex p-1 bg-slate-100/80 rounded-xl w-full sm:w-auto z-10">
+          <div className="flex p-1 bg-slate-100/80 rounded-xl w-full sm:w-auto z-10 overflow-x-auto no-scrollbar mb-1 sm:mb-0">
             <button
               onClick={() => setActiveTab('approvals')}
-              className={`flex-1 sm:flex-none py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'approvals' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+              className={`flex-1 shrink-0 sm:flex-none py-1.5 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${activeTab === 'approvals' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
             >
-              <ListChecks className="w-4 h-4" />
-              Approvals {pendingOrders.length > 0 && <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">{pendingOrders.length}</span>}
+              <ListChecks className="w-4 h-4 shrink-0" />
+              Approvals {pendingOrders.length > 0 && <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{pendingOrders.length}</span>}
             </button>
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`flex-1 sm:flex-none py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'dashboard' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+              className={`flex-1 shrink-0 sm:flex-none py-1.5 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${activeTab === 'dashboard' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
             >
-              <LayoutDashboard className="w-4 h-4" />
+              <LayoutDashboard className="w-4 h-4 shrink-0" />
               Dashboard
             </button>
             <button
               onClick={() => setActiveTab('directory')}
-              className={`flex-1 sm:flex-none py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'directory' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+              className={`flex-1 shrink-0 sm:flex-none py-1.5 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${activeTab === 'directory' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
             >
-              <Search className="w-4 h-4" />
+              <Search className="w-4 h-4 shrink-0" />
               Directory
             </button>
+          </div>
+
+          {/* Desktop Admin Text (Top Right) */}
+          <div className="hidden sm:block py-2">
+            <span className="font-semibold text-lg tracking-tight text-gray-900 leading-tight">
+              Admin <span className="text-orange-500 font-light">Panel</span>
+            </span>
           </div>
         </div>
       </header>
