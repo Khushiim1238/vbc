@@ -5,6 +5,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { CheckCircle, Clock, Loader2, XCircle, CheckSquare, Activity, Trophy, Package, Users, LayoutDashboard, ListChecks, Lock, Search, ChevronRight, Download, Phone, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import DukandarAdmin from "@/components/DukandarAdmin";
 
 interface PendingOrder {
   id: string;
@@ -52,6 +53,8 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
 
+  const [entityMode, setEntityMode] = useState<'karigar' | 'dukandar'>('karigar');
+  const [dukandarPendingCount, setDukandarPendingCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'approvals' | 'dashboard' | 'directory'>('approvals');
 
   // --- Admin Approvals State ---
@@ -160,6 +163,15 @@ export default function AdminPage() {
       if (karigarsRes.data) setKarigars(karigarsRes.data as Karigar[]);
       if (ordersRes.data) setDashboardOrders(ordersRes.data as Order[]);
       
+      try {
+        const { count } = await supabase
+          .from("dukandar_orders")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending");
+        setDukandarPendingCount(count || 0);
+      } catch (e) {
+        // Safe fallback
+      }
     } catch (err: unknown) {
       console.error("Failed to fetch data", err);
       setAdminError(err instanceof Error ? err.message : "Failed to fetch data.");
@@ -183,19 +195,35 @@ export default function AdminPage() {
         setPendingOrders(prev => prev.filter(o => o.id !== orderId));
         setSelectedOrderIds(prev => prev.filter(id => id !== orderId));
 
-        if (data.whatsapp_data && data.whatsapp_data.pointsAwarded > 0) {
+        if (data.whatsapp_data) {
           const w = data.whatsapp_data;
           
           let orderDetails = "";
           if (w.bags > 0 && w.sariya > 0) {
-            orderDetails = `सीमेंट: ${w.bags} बैग\nसरिया: ₹${w.sariya}`;
+            orderDetails = `सीमेंट: ${w.bags} बैग, सरिया: ₹${w.sariya}`;
           } else if (w.bags > 0) {
             orderDetails = `सीमेंट: ${w.bags} बैग`;
           } else if (w.sariya > 0) {
             orderDetails = `सरिया: ₹${w.sariya}`;
           }
 
-          const msg = `नमस्ते ${w.name} जी 🙏\n\nआपका ऑर्डर स्वीकृत हो गया है:\n${orderDetails}\n\n🎉 हार्दिक बधाई एवं शुभकामनाएं,\n\nआपको मिले हैं कूपन नंबर : ${w.couponCode}\nआपके अब तक कुल कूपन हैं : ${w.totalPoints}\n\nधन्यवाद! वर्धमान ग्रुप टोंक`;
+          let msg = `नमस्ते ${w.name} जी! 🙏\n\n`;
+          if (orderDetails) {
+            msg += `✅ *ऑर्डर स्वीकृत:* ${orderDetails}\n`;
+          }
+          if (w.bags > 0) {
+            msg += `परफैक्ट प्लस सीमेंट को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
+          } else {
+            msg += `\n`;
+          }
+
+          if (w.pointsAwarded > 0) {
+            msg += `🎟️ आपको मिले है कूपन नं: *${w.couponCode}*\n🏆 आपके अब तक कुल कूपन: *${w.totalPoints}*\n\n"ख़ुशियों की बरसात" योजना अवधि (*1 जुलाई 2026* से *30 अगस्त 2027*) में, मोटरसाइकिल, फ्रिज, वाशिंग मशीन, जैसे कई आकर्षक उपहार जीतने के लिए अपने कूपन बढ़ाते रहें!\n\n`;
+          } else {
+            msg += `🏆 आपके अब तक कुल कूपन: *${w.totalPoints}*\n\n`;
+          }
+
+          msg += `हार्दिक बधाई व शुभकामनाएं\n— वर्धमान ग्रुप, टोंक`;
           
           let phone = w.phone.replace(/\D/g, '');
           if (phone.length === 10) phone = '91' + phone;
@@ -320,7 +348,11 @@ export default function AdminPage() {
     if (orderDetails) {
       msg += `✅ *ऑर्डर स्वीकृत:* ${orderDetails.replace('\n', ', ')}\n`;
     }
-    msg += `परफैक्ट प्लस सीमेंट को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
+    if (order.bags_ordered > 0) {
+      msg += `परफैक्ट प्लस सीमेंट को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
+    } else {
+      msg += `\n`;
+    }
 
     if (order.points_awarded > 0) {
       const cNo = formatCoupons(order.coupon_number, order.points_awarded);
@@ -525,73 +557,130 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-emerald-100 selection:text-emerald-900">
       {/* Elegant Header */}
-      <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-2 md:px-4 flex flex-col sm:flex-row items-center justify-between">
+      {/* Modern Sticky Admin Header */}
+      <header className="bg-white border-b border-slate-200/90 shadow-xs sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
           
-          <div className="w-full sm:w-auto flex items-center justify-between py-1 sm:py-2">
-            <Image
-              src="/v_logo.png"
-              alt="Vardhman Logo"
-              width={90}
-              height={36}
-              className="object-contain"
-            />
-            {/* Mobile Admin Text (Top Right) */}
-            <span className="font-semibold text-base tracking-tight text-gray-900 leading-tight sm:hidden">
-              Admin <span className="text-orange-500 font-light">Panel</span>
-            </span>
-          </div>
-          
-          {/* Custom Tab Switcher in Header */}
-          <div className="flex p-1 bg-slate-100/80 rounded-xl w-full sm:w-auto z-10 overflow-x-auto no-scrollbar mb-1 sm:mb-0">
-            <button
-              onClick={() => setActiveTab('approvals')}
-              className={`flex-1 shrink-0 sm:flex-none py-1.5 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${activeTab === 'approvals' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-            >
-              <ListChecks className="w-4 h-4 shrink-0" />
-              Approvals {pendingOrders.length > 0 && <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{pendingOrders.length}</span>}
-            </button>
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`flex-1 shrink-0 sm:flex-none py-1.5 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${activeTab === 'dashboard' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-            >
-              <LayoutDashboard className="w-4 h-4 shrink-0" />
-              Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab('directory')}
-              className={`flex-1 shrink-0 sm:flex-none py-1.5 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${activeTab === 'directory' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-            >
-              <Search className="w-4 h-4 shrink-0" />
-              Directory
-            </button>
-          </div>
+          {/* Top Bar: Logo + Admin Badge + Entity Switcher */}
+          <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2">
+              <Image
+                src="/v_logo.png"
+                alt="Vardhman Logo"
+                width={80}
+                height={32}
+                className="object-contain"
+              />
+              <span className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200/80 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Admin
+              </span>
+            </div>
 
-          {/* Desktop Admin Text (Top Right) */}
-          <div className="hidden sm:block py-2">
-            <span className="font-semibold text-lg tracking-tight text-gray-900 leading-tight">
-              Admin <span className="text-orange-500 font-light">Panel</span>
-            </span>
+            {/* Entity Mode Switcher (Karigar vs Dukandar) */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setEntityMode('karigar')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  entityMode === 'karigar'
+                    ? 'bg-white text-orange-600 shadow-sm border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>🔨 Karigar</span>
+                {pendingOrders.length > 0 && (
+                  <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                    {pendingOrders.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEntityMode('dukandar')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  entityMode === 'dukandar'
+                    ? 'bg-white text-blue-600 shadow-sm border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>🏪 Dukandar</span>
+                {dukandarPendingCount > 0 && (
+                  <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                    {dukandarPendingCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
+          
+          {/* Sub-Tab Switcher (Approvals, Dashboard, Directory) for Karigar */}
+          {entityMode === 'karigar' && (
+            <div className="flex p-1 bg-slate-100 rounded-xl w-full sm:w-auto shadow-inner">
+              <button
+                type="button"
+                onClick={() => setActiveTab('approvals')}
+                className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === 'approvals' 
+                    ? 'bg-white text-slate-900 shadow-sm' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <ListChecks className="w-3.5 h-3.5 shrink-0 text-orange-600" />
+                <span>Approvals</span>
+                {pendingOrders.length > 0 && (
+                  <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                    {pendingOrders.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('dashboard')}
+                className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === 'dashboard' 
+                    ? 'bg-white text-slate-900 shadow-sm' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                <span>Dashboard</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('directory')}
+                className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === 'directory' 
+                    ? 'bg-white text-slate-900 shadow-sm' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Search className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                <span>Directory</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-8 pb-24">
-        
-        {adminError && activeTab === 'approvals' && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <strong className="font-bold">Error loading data! </strong>
-            <span className="block sm:inline">{adminError}</span>
-          </div>
-        )}
+      <main className="max-w-7xl mx-auto px-2.5 sm:px-6 md:px-8 py-3 sm:py-6 space-y-4 sm:space-y-6 pb-24">
+        {entityMode === 'dukandar' ? (
+          <DukandarAdmin />
+        ) : (
+          <>
+            {adminError && activeTab === 'approvals' && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-xs" role="alert">
+                <strong className="font-bold">Error loading data! </strong>
+                <span className="block sm:inline">{adminError}</span>
+              </div>
+            )}
 
         {/* Approvals Tab */}
         {activeTab === 'approvals' && (
-          <div className="bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Clock className="w-5 h-5 text-amber-500" />
-                Pending Approvals ({pendingOrders.length})
+          <div className="bg-transparent sm:bg-white sm:rounded-3xl p-0 sm:p-6 sm:shadow-sm sm:border sm:border-slate-200/80 animate-in fade-in duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-6 gap-3">
+              <h2 className="text-base sm:text-xl font-bold flex items-center gap-2 text-slate-900 px-1 sm:px-0">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
+                <span>Pending Approvals ({pendingOrders.length})</span>
               </h2>
 
               {selectedOrderIds.length > 0 && (
@@ -716,66 +805,79 @@ export default function AdminPage() {
                 </div>
 
                 {/* Mobile View (Cards) */}
-                <div className="md:hidden flex flex-col gap-4">
+                <div className="md:hidden flex flex-col gap-2.5">
                   {/* Select All Row for Mobile */}
                   {pendingOrders.length > 0 && (
-                    <div className="flex items-center gap-3 px-2 py-1">
-                      <input 
-                        type="checkbox" 
-                        className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                        checked={selectedOrderIds.length === pendingOrders.length}
-                        onChange={toggleSelectAll}
-                        id="selectAllMobile"
-                      />
-                      <label htmlFor="selectAllMobile" className="text-sm font-medium text-slate-700 select-none">
-                        Select All {pendingOrders.length} Orders
-                      </label>
+                    <div className="flex items-center justify-between px-1.5 py-1 text-xs">
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                          checked={selectedOrderIds.length === pendingOrders.length}
+                          onChange={toggleSelectAll}
+                          id="selectAllMobile"
+                        />
+                        <label htmlFor="selectAllMobile" className="font-bold text-slate-700 select-none cursor-pointer">
+                          Select All ({pendingOrders.length})
+                        </label>
+                      </div>
+                      <span className="text-[11px] text-slate-400 font-medium">Auto-opens WhatsApp</span>
                     </div>
                   )}
 
                   {pendingOrders.map((o) => {
                     const isSelected = selectedOrderIds.includes(o.id);
                     return (
-                      <div key={o.id} className={`p-4 rounded-2xl border transition-colors ${isSelected ? 'bg-emerald-50/40 border-emerald-200' : 'bg-slate-50 border-slate-100'} shadow-sm flex flex-col gap-4`}>
-                        <div className="flex items-start gap-3">
-                          <div className="pt-1 shrink-0">
-                            <input 
-                              type="checkbox" 
-                              className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                              checked={isSelected}
-                              onChange={() => toggleSelectOrder(o.id)}
-                            />
-                          </div>
-                          <div className="flex-1 flex justify-between items-start min-w-0">
-                            <div className="min-w-0 pr-2">
-                              <h3 className="font-semibold text-slate-900 truncate">{o.karigars?.name || 'Unknown'}</h3>
-                              <p className="text-xs text-slate-500">{o.karigars?.phone}</p>
-                              <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {new Date(o.order_time).toLocaleDateString()} {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                <span className="ml-1.5 px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-medium text-slate-500">By: {o.entered_by || 'Staff'}</span>
-                              </div>
+                      <div 
+                        key={o.id} 
+                        className={`bg-white p-3.5 rounded-2xl border transition-all shadow-xs flex flex-col gap-2.5 ${
+                          isSelected 
+                            ? 'border-emerald-500 bg-emerald-50/20 ring-1 ring-emerald-500/20' 
+                            : 'border-slate-200/90 hover:border-slate-300'
+                        }`}
+                      >
+                        {/* Header: Checkbox + Customer + Coupon Badge */}
+                        <div className="flex items-start gap-2.5">
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer mt-1 shrink-0"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOrder(o.id)}
+                          />
+                          <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h3 className="font-bold text-slate-900 text-base leading-snug truncate">{o.karigars?.name || 'Unknown'}</h3>
+                              <p className="text-xs text-slate-500 font-medium mt-0.5">{o.karigars?.phone}</p>
                             </div>
-                            <div className="shrink-0 text-right max-w-[45%]">
-                              <span className="font-bold text-emerald-600 bg-emerald-100/50 px-2.5 py-1 rounded-md text-xs break-words inline-block text-right">
-                                C-No: {formatCoupons(o.coupon_number, o.points_awarded)}
-                              </span>
-                            </div>
+                            <span className="font-black text-xs text-emerald-800 bg-emerald-100/90 px-3 py-1 rounded-full border border-emerald-200/90 shrink-0">
+                              C-No: {formatCoupons(o.coupon_number, o.points_awarded)}
+                            </span>
                           </div>
                         </div>
 
-                        <div className="bg-white p-3 rounded-xl border border-slate-100 text-sm font-medium text-slate-700">
-                          {[
-                            o.bags_ordered > 0 ? `${o.bags_ordered} bags` : null,
-                            o.sariya_ordered > 0 ? `₹${o.sariya_ordered} sariya` : null
-                          ].filter(Boolean).join(' & ')}
+                        {/* Order & Metadata Chips */}
+                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 flex items-center justify-between text-xs sm:text-sm">
+                          <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                            <Package className="w-4 h-4 text-orange-500 shrink-0" />
+                            {[
+                              o.bags_ordered > 0 ? `${o.bags_ordered} bags` : null,
+                              o.sariya_ordered > 0 ? `₹${o.sariya_ordered} sariya` : null
+                            ].filter(Boolean).join(' & ')}
+                          </span>
+                          <span className="text-xs text-slate-600 font-medium flex items-center gap-1.5 shrink-0">
+                            <span>{new Date(o.order_time).toLocaleDateString([], { month: 'numeric', day: 'numeric' })}, {new Date(o.order_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="bg-white px-2 py-0.5 rounded border border-slate-200 text-xs font-semibold text-slate-700">{o.entered_by || 'Staff'}</span>
+                          </span>
                         </div>
 
-                        <div className="flex items-center gap-3 pt-1">
+                        {/* Action Buttons */}
+                        <div className="grid grid-cols-2 gap-2.5 pt-0.5">
                           <button
+                            type="button"
                             onClick={() => handleCancel(o.id)}
                             disabled={cancelProcessingId === o.id || processingId === o.id || isBulkProcessing}
-                            className="flex-1 inline-flex justify-center items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 py-2.5 rounded-xl font-medium transition-colors disabled:opacity-50"
+                            className="py-2.5 px-3 rounded-xl font-bold text-sm bg-rose-50 hover:bg-rose-100 active:scale-[0.98] text-rose-700 border border-rose-200/80 flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
                           >
                             {cancelProcessingId === o.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -787,9 +889,10 @@ export default function AdminPage() {
                             )}
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleApprove(o.id)}
                             disabled={processingId === o.id || cancelProcessingId === o.id || isBulkProcessing}
-                            className="flex-1 inline-flex justify-center items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl font-medium transition-colors shadow-sm shadow-emerald-500/20 disabled:opacity-50"
+                            className="py-2.5 px-3 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white shadow-sm shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
                           >
                             {processingId === o.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -1036,7 +1139,11 @@ export default function AdminPage() {
                         if (orderDetails) {
                           msg += `✅ *ऑर्डर स्वीकृत:* ${orderDetails.replace('\n', ', ')}\n`;
                         }
-                        msg += `परफैक्ट प्लस सीमेंट को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
+                        if (w.bags > 0) {
+                          msg += `परफैक्ट प्लस सीमेंट को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
+                        } else {
+                          msg += `\n`;
+                        }
 
                         if (w.pointsAwarded > 0) {
                           msg += `🎟️ आपको मिले है कूपन नं: *${w.couponCode}*\n🏆 आपके अब तक कुल कूपन: *${w.totalPoints}*\n\n"ख़ुशियों की बरसात" योजना अवधि (*1 जुलाई 2026* से *30 अगस्त 2027*) में, मोटरसाइकिल, फ्रिज, वाशिंग मशीन, जैसे कई आकर्षक उपहार जीतने के लिए अपने कूपन बढ़ाते रहें!\n\n`;
@@ -1062,7 +1169,8 @@ export default function AdminPage() {
             </div>
           </div>
         )}
-        
+          </>
+        )}
       </main>
     </div>
   );

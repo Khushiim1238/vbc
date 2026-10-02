@@ -1,0 +1,46 @@
+import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
+import { cookies } from 'next/headers';
+
+export async function POST(request: Request) {
+  const cookieStore = await cookies();
+  const role = cookieStore.get('vbc_role')?.value;
+  if (role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const { order_id } = await request.json();
+
+    if (!order_id) {
+      return NextResponse.json({ error: 'Missing order_id' }, { status: 400 });
+    }
+
+    // 1. Fetch pending order
+    const { data: order, error: orderError } = await supabase
+      .from('dukandar_orders')
+      .select('*')
+      .eq('id', order_id)
+      .eq('status', 'pending')
+      .single();
+
+    if (orderError || !order) {
+      return NextResponse.json({ error: 'Order not found or already processed' }, { status: 404 });
+    }
+
+    // 2. Update order status to cancelled
+    const { error: updateError } = await supabase
+      .from('dukandar_orders')
+      .update({ status: 'cancelled' })
+      .eq('id', order_id);
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, order_id });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
