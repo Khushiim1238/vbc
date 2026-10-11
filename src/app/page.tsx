@@ -63,6 +63,7 @@ export default function OrderEntry() {
   const [bags, setBags] = useState<number | "">("");
   const [sariya1, setSariya1] = useState<number | "">(""); // Sariya in Rs
   const [enteredBy, setEnteredBy] = useState("Staff");
+  const [staffNameInput, setStaffNameInput] = useState("");
   
   // Directory & Passbook State
   const [directorySearch, setDirectorySearch] = useState("");
@@ -114,12 +115,16 @@ export default function OrderEntry() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        const savedName = getStoredStaffName();
+        if (savedName && savedName !== 'Staff' && savedName !== 'Admin') {
+          setStaffNameInput(savedName);
+        }
         const res = await fetch('/api/auth/me');
         const data = await res.json();
         if (data.authenticated) {
           setIsAuthenticated(true);
-          const savedName = getStoredStaffName(data.role);
-          setEnteredBy(savedName);
+          const activeRoleName = getStoredStaffName(data.role);
+          setEnteredBy(activeRoleName);
         }
       } catch (err) {
         console.error("Auth check failed", err);
@@ -170,6 +175,14 @@ export default function OrderEntry() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!staffNameInput.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
+    if (!passwordInput.trim()) {
+      toast.error("Please enter your staff PIN");
+      return;
+    }
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -178,11 +191,12 @@ export default function OrderEntry() {
       });
       const data = await res.json();
       if (res.ok) {
+        const trimmedName = staffNameInput.trim();
+        localStorage.setItem("vbc_staff_name", trimmedName);
+        setEnteredBy(trimmedName);
         setIsAuthenticated(true);
-        const savedName = getStoredStaffName(data.role);
-        setEnteredBy(savedName);
         fetchKarigars();
-        toast.success("Welcome back!");
+        toast.success(`Welcome back, ${trimmedName}!`);
       } else {
         toast.error(data.error || "Invalid PIN");
         setPasswordInput("");
@@ -227,18 +241,32 @@ export default function OrderEntry() {
 
   const handleSaveKarigar = async (id: string) => {
     try {
+      const cleanPhone = editPhone.trim().replace(/\D/g, '');
+      if (!editName.trim()) {
+        toast.error("Please enter a valid customer name");
+        return;
+      }
+      if (cleanPhone.length < 10) {
+        toast.error("Please enter a valid 10-digit phone number");
+        return;
+      }
+
       const res = await fetch(`/api/karigars/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editName, phone: editPhone })
+        body: JSON.stringify({ name: editName.trim(), phone: cleanPhone })
       });
       const data = await res.json();
       if (res.ok) {
         toast.success("Customer updated successfully");
-        setKarigars(karigars.map(k => k.id === id ? { ...k, name: editName, phone: editPhone } : k));
+        setKarigars(prev => prev.map(k => k.id === id ? { ...k, name: editName.trim(), phone: cleanPhone } : k));
         if (selectedKarigarDetails?.id === id) {
-          setSelectedKarigarDetails({ ...selectedKarigarDetails, name: editName, phone: editPhone });
+          setSelectedKarigarDetails({ ...selectedKarigarDetails, name: editName.trim(), phone: cleanPhone });
         }
+        setTransactions(prev => prev.map(t => t.karigar_id === id ? {
+          ...t,
+          karigars: { name: editName.trim(), phone: cleanPhone }
+        } : t));
         setEditingKarigarId(null);
       } else {
         toast.error(data.error || "Update failed");
@@ -425,27 +453,57 @@ export default function OrderEntry() {
   );
 
   // Authentication Screen
+  // Authentication Screen (Light Theme)
   if (!isAuthenticated && !loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="bg-white/10 backdrop-blur-xl border border-white/15 p-8 rounded-3xl w-full max-w-sm text-center shadow-2xl">
-          <div className="w-16 h-16 bg-orange-500/20 text-orange-400 rounded-2xl flex items-center justify-center mx-auto mb-6 ring-1 ring-orange-500/30">
-            <Lock className="w-8 h-8" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Karigar Portal</h2>
-          <p className="text-slate-400 text-sm mb-6">Enter your 4-digit staff PIN</p>
-          <form onSubmit={handleLogin}>
-            <input
-              type="password"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              className="w-full text-center text-3xl tracking-[0.5em] p-4 bg-white/5 border border-white/10 rounded-2xl text-white mb-6 focus:outline-none focus:border-orange-400 transition-all font-mono"
-              placeholder="••••"
-              autoFocus
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/30 to-slate-100 flex items-center justify-center p-4">
+        <div className="bg-white border border-slate-200/80 p-8 rounded-3xl w-full max-w-sm text-center shadow-xl shadow-slate-200/50 animate-in fade-in zoom-in-95 duration-200">
+          <div className="flex justify-center mb-5">
+            <Image
+              src="/v_logo.png"
+              alt="Vardhman Logo"
+              width={96}
+              height={38}
+              className="object-contain"
             />
+          </div>
+          <div className="w-14 h-14 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-orange-100 shadow-xs">
+            <Lock className="w-7 h-7" />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 mb-1">Staff Portal</h2>
+          <p className="text-slate-500 text-xs font-medium mb-6">Enter your name and PIN to log in</p>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block text-left mb-1.5 pl-1">
+                Your Name
+              </label>
+              <input
+                type="text"
+                value={staffNameInput}
+                onChange={(e) => setStaffNameInput(e.target.value)}
+                className="w-full text-center text-base p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-semibold focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all shadow-inner placeholder:text-slate-400 placeholder:font-normal"
+                placeholder="e.g. Ramraj"
+                required
+                autoFocus={!staffNameInput}
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block text-left mb-1.5 pl-1">
+                Staff PIN
+              </label>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full text-center text-3xl tracking-[0.5em] p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-mono focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all shadow-inner placeholder:tracking-normal placeholder:text-slate-300"
+                placeholder="••••"
+                required
+                autoFocus={!!staffNameInput}
+              />
+            </div>
             <button
               type="submit"
-              className="w-full py-4 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl font-semibold transition-all shadow-lg shadow-orange-600/30 active:scale-95"
+              className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 active:scale-[0.98] text-white rounded-2xl font-bold transition-all shadow-lg shadow-orange-600/25 cursor-pointer mt-2"
             >
               Unlock Portal
             </button>
@@ -474,21 +532,10 @@ export default function OrderEntry() {
             </div>
           </div>
 
-          {/* Segmented Portal Switcher */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80 shadow-inner">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-orange-600 shadow-sm border border-slate-200/60">
-              <span>🔨</span>
-              <span>Karigar</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse ml-0.5"></span>
-            </div>
-            <Link
-              href="/dukandar"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-              title="Switch to Dukandar Portal"
-            >
-              <span>🏪</span>
-              <span>Dukandar</span>
-            </Link>
+          {/* Portal Badge */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200/80 shadow-xs">
+            <span>🔨</span>
+            <span>Karigar Portal</span>
           </div>
 
           {/* Staff Badge */}
@@ -1002,6 +1049,20 @@ export default function OrderEntry() {
                         >
                           <MessageCircle className="w-3.5 h-3.5 text-emerald-700" />
                         </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleKarigarClick(k);
+                            setEditingKarigarId(k.id);
+                            setEditName(k.name);
+                            setEditPhone(k.phone);
+                          }}
+                          className="p-2 bg-slate-50 border border-slate-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 rounded-xl shadow-xs text-slate-700 transition-colors"
+                          title="Edit Customer"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                     <div className="text-right flex flex-col items-end gap-1.5">
@@ -1040,8 +1101,65 @@ export default function OrderEntry() {
                       </span>
                     </div>
 
-                    <h2 className="text-2xl font-black">{selectedKarigarDetails.name}</h2>
-                    <p className="text-xs text-orange-100">{selectedKarigarDetails.phone}</p>
+                    {editingKarigarId === selectedKarigarDetails.id ? (
+                      <div className="space-y-3 bg-white/10 p-3.5 rounded-2xl border border-white/20 mt-1">
+                        <div>
+                          <label className="text-[11px] font-bold text-orange-200 uppercase tracking-wider block mb-1">Customer Name</label>
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="w-full p-2.5 bg-white text-slate-900 rounded-xl text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            placeholder="Customer Name"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-orange-200 uppercase tracking-wider block mb-1">Phone Number</label>
+                          <input
+                            type="tel"
+                            value={editPhone}
+                            onChange={(e) => setEditPhone(e.target.value)}
+                            className="w-full p-2.5 bg-white text-slate-900 rounded-xl text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            placeholder="10-digit Phone Number"
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleSaveKarigar(selectedKarigarDetails.id)}
+                            className="flex-1 py-2 bg-white text-orange-700 hover:bg-orange-50 rounded-xl text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer"
+                          >
+                            Save Changes
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingKarigarId(null)}
+                            className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h2 className="text-2xl font-black">{selectedKarigarDetails.name}</h2>
+                          <p className="text-xs text-orange-100 font-medium mt-0.5">{selectedKarigarDetails.phone}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingKarigarId(selectedKarigarDetails.id);
+                            setEditName(selectedKarigarDetails.name);
+                            setEditPhone(selectedKarigarDetails.phone);
+                          }}
+                          className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all shrink-0 active:scale-95 cursor-pointer"
+                          title="Edit Customer Details"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" /> Edit
+                        </button>
+                      </div>
+                    )}
 
                     <div className="mt-4 pt-4 border-t border-white/20 flex items-center justify-between">
                       <div>
