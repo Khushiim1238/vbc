@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  Search, Plus, User, Package, Trophy, Lock, Users, 
-  Loader2, Phone, MessageCircle, Clock, CheckCircle2, 
-  Store, X, RefreshCw, ChevronRight, Edit2 
+import {
+  Search, Plus, User, Package, Trophy, Lock, Users,
+  Loader2, Phone, MessageCircle, Clock, CheckCircle2,
+  Store, X, RefreshCw, ChevronRight, Edit2
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -37,7 +37,7 @@ export default function DukandarOrderEntry() {
   const [passwordInput, setPasswordInput] = useState("");
 
   const [activeTab, setActiveTab] = useState<'order' | 'transactions' | 'customer_history'>('order');
-  
+
   const [dukandars, setDukandars] = useState<Dukandar[]>([]);
   const [transactions, setTransactions] = useState<DukandarTransaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +91,7 @@ export default function DukandarOrderEntry() {
           return parsed.name.trim();
         }
       }
-    } catch {}
+    } catch { }
     const legacy = localStorage.getItem("staff_name") || localStorage.getItem("user_name");
     if (legacy && legacy.trim() && legacy.trim().toLowerCase() !== 'staff') {
       localStorage.setItem("vbc_staff_name", legacy.trim());
@@ -245,29 +245,20 @@ export default function DukandarOrderEntry() {
   // WhatsApp in Hindi as requested
   const handleResendWhatsApp = (order: DukandarTransaction, dukandar: Dukandar) => {
     const itemsList: string[] = [];
-    if (order.bags_ordered > 0) {
-      itemsList.push(`• सीमेंट: ${order.bags_ordered} बैग (+${order.bags_ordered} pts)`);
-    }
-    if (order.sariya_ordered > 0) {
-      itemsList.push(`• सरिया बिल: ₹${order.sariya_ordered.toLocaleString('en-IN')} (+${Math.floor(order.sariya_ordered / 1000)} pts)`);
-    }
-    if (order.pole_ordered > 0) {
-      itemsList.push(`• पोल बिल: ₹${order.pole_ordered.toLocaleString('en-IN')} (+${Math.floor(order.pole_ordered / 1000)} pts)`);
-    }
-    if (order.tile_ordered > 0) {
-      itemsList.push(`• टाइल्स बिल: ₹${order.tile_ordered.toLocaleString('en-IN')} (+${Math.floor(order.tile_ordered / 1000)} pts)`);
-    }
+    if (order.bags_ordered > 0) itemsList.push(`सीमेंट: ${order.bags_ordered} बैग`);
+    if (order.sariya_ordered > 0) itemsList.push(`सरिया: ₹${order.sariya_ordered.toLocaleString('en-IN')}`);
+    if (order.pole_ordered > 0) itemsList.push(`पोल: ₹${order.pole_ordered.toLocaleString('en-IN')}`);
+    if (order.tile_ordered > 0) itemsList.push(`टाइल्स: ₹${order.tile_ordered.toLocaleString('en-IN')}`);
+
+    const itemsText = itemsList.length > 0 ? itemsList.join(", ") : `सीमेंट: ${order.bags_ordered || 0} बैग`;
 
     let msg = `नमस्ते ${dukandar.name} जी! 🙏\n\n`;
-    msg += `✅ *ऑर्डर विवरण:*\n${itemsList.join("\n") || `• सीमेंट: ${order.bags_ordered || 0} बैग`}\n\n`;
-    msg += `आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
+    msg += `✅ *ऑर्डर स्वीकृत:* ${itemsText}\n`;
+    msg += `वर्धमान बिल्डिंग सल्यूशन को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
 
     if (order.status === 'approved') {
-      if (order.coupon_number) {
-        msg += `🎟️ *कूपन नंबर:* #${order.coupon_number} (पॉइंट्स: ${order.points_awarded})\n`;
-      }
-      msg += `⭐ इस ऑर्डर के कुल पॉइंट्स: *+${order.points_awarded} पॉइंट्स*\n`;
-      msg += `🏆 आपका कुल पॉइंट्स बैलेंस: *${dukandar.total_points} पॉइंट्स*\n\n`;
+      msg += `⭐ आपके मिले हैं: *+${order.points_awarded} पॉइंट्स*\n`;
+      msg += `🏆 आपका कुल पॉइंट्स है: *${dukandar.total_points} पॉइंट्स*\n\n`;
     } else if (order.status === 'pending') {
       msg += `⏳ *स्थिति:* आपका ऑर्डर वेरिफिकेशन के लिए प्रोसेस में है।\n⭐ संभावित पॉइंट्स: *${order.points_awarded} पॉइंट्स*\n\n`;
     }
@@ -361,10 +352,10 @@ export default function DukandarOrderEntry() {
     // Independent calculation:
     // Cement: 1 bag = 1 pt
     // Sariya, Pole, Tile: 1 pt per ₹1,000 purchase each
-    const calculatedPoints = 
-      submittedBags + 
-      Math.floor(submittedSariya / 1000) + 
-      Math.floor(submittedPole / 1000) + 
+    const calculatedPoints =
+      submittedBags +
+    Math.floor(submittedSariya / 1000) +
+      Math.floor(submittedPole / 1000) +
       Math.floor(submittedTile / 1000);
 
     try {
@@ -415,8 +406,8 @@ export default function DukandarOrderEntry() {
     }
   };
 
-  const filteredDukandars = dukandars.filter(d => 
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredDukandars = dukandars.filter(d =>
+    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     d.phone.includes(searchQuery)
   );
 
@@ -496,33 +487,30 @@ export default function DukandarOrderEntry() {
         <div className="flex p-1 bg-slate-200/80 rounded-2xl w-full mb-5 shadow-inner">
           <button
             onClick={() => setActiveTab('order')}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === 'order' 
-                ? 'bg-white text-blue-700 shadow-sm' 
+            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'order'
+                ? 'bg-white text-blue-700 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             <Plus className="w-4 h-4 shrink-0" />
             <span>New Order</span>
           </button>
           <button
             onClick={() => setActiveTab('transactions')}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === 'transactions' 
-                ? 'bg-white text-blue-700 shadow-sm' 
+            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'transactions'
+                ? 'bg-white text-blue-700 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             <Clock className="w-4 h-4 shrink-0" />
             <span>Transactions</span>
           </button>
           <button
             onClick={() => setActiveTab('customer_history')}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === 'customer_history' 
-                ? 'bg-white text-blue-700 shadow-sm' 
+            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'customer_history'
+                ? 'bg-white text-blue-700 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             <Users className="w-4 h-4 shrink-0" />
             <span>Passbook</span>
@@ -543,7 +531,7 @@ export default function DukandarOrderEntry() {
                   <p className="text-slate-600 text-xs sm:text-sm mb-5">
                     Order for <span className="font-bold text-slate-900">{success.customerName}</span> has been submitted.
                   </p>
-                  
+
                   <div className="bg-blue-50 w-full rounded-2xl p-4 mb-5 border border-blue-200/80">
                     <p className="text-xs text-blue-800 font-bold uppercase tracking-wider mb-1">Points Allotted</p>
                     <p className="text-3xl font-black text-blue-600 tracking-wider">
@@ -575,7 +563,7 @@ export default function DukandarOrderEntry() {
 
             {/* Order Card Container */}
             <form onSubmit={handleSubmitOrder} className="space-y-4">
-              
+
               {/* 1. Customer Selection Card */}
               <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200/80">
                 <div className="flex items-center justify-between mb-4">
@@ -594,18 +582,16 @@ export default function DukandarOrderEntry() {
                     <button
                       type="button"
                       onClick={() => setIsNewCustomer(false)}
-                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                        !isNewCustomer ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${!isNewCustomer ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'
+                        }`}
                     >
                       Existing
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsNewCustomer(true)}
-                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                        isNewCustomer ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${isNewCustomer ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'
+                        }`}
                     >
                       + New
                     </button>
@@ -947,24 +933,22 @@ export default function DukandarOrderEntry() {
                 {transactions.map((t) => {
                   const isApproved = t.status === 'approved';
                   const isCancelled = t.status === 'cancelled';
-                  
+
                   return (
                     <div
                       key={t.id}
                       className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-blue-200 transition-colors"
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 font-bold ${
-                          isApproved ? 'bg-emerald-100 text-emerald-700' : isCancelled ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 font-bold ${isApproved ? 'bg-emerald-100 text-emerald-700' : isCancelled ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                          }`}>
                           {isApproved ? '✓' : isCancelled ? '✕' : '⏳'}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="font-bold text-slate-900 text-sm">{t.dukandars?.name || 'Dukandar'}</p>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                              isApproved ? 'bg-emerald-100 text-emerald-800' : isCancelled ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
-                            }`}>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${isApproved ? 'bg-emerald-100 text-emerald-800' : isCancelled ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                              }`}>
                               {t.status}
                             </span>
                           </div>
@@ -1009,9 +993,9 @@ export default function DukandarOrderEntry() {
             <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/90 shadow-sm flex items-center gap-2">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input 
-                  type="text" 
-                  placeholder="Search dukandar by name or phone..." 
+                <input
+                  type="text"
+                  placeholder="Search dukandar by name or phone..."
                   value={historySearchQuery}
                   onChange={(e) => setHistorySearchQuery(e.target.value)}
                   className="w-full pl-9 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-blue-500 font-medium transition-all"
@@ -1181,9 +1165,8 @@ export default function DukandarOrderEntry() {
                                   o.tile_ordered > 0 ? `Tiles: ₹${o.tile_ordered.toLocaleString('en-IN')}` : null,
                                 ].filter(Boolean).join(" • ") || `Cement: ${o.bags_ordered || 0} Bags`}
                               </span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                                o.status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                              }`}>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${o.status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                }`}>
                                 {o.status}
                               </span>
                             </div>

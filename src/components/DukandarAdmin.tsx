@@ -163,19 +163,18 @@ export default function DukandarAdmin() {
     couponNumber?: number;
   }) => {
     const itemsList: string[] = [];
-    if (w.bags > 0) itemsList.push(`• सीमेंट: ${w.bags} बैग (+${w.bags} pts)`);
-    if ((w.sariya || 0) > 0) itemsList.push(`• सरिया: ₹${(w.sariya || 0).toLocaleString('en-IN')} (+${Math.floor((w.sariya || 0) / 1000)} pts)`);
-    if ((w.pole || 0) > 0) itemsList.push(`• पोल: ₹${(w.pole || 0).toLocaleString('en-IN')} (+${Math.floor((w.pole || 0) / 1000)} pts)`);
-    if ((w.tile || 0) > 0) itemsList.push(`• टाइल्स: ₹${(w.tile || 0).toLocaleString('en-IN')} (+${Math.floor((w.tile || 0) / 1000)} pts)`);
+    if (w.bags > 0) itemsList.push(`सीमेंट: ${w.bags} बैग`);
+    if ((w.sariya || 0) > 0) itemsList.push(`सरिया: ₹${(w.sariya || 0).toLocaleString('en-IN')}`);
+    if ((w.pole || 0) > 0) itemsList.push(`पोल: ₹${(w.pole || 0).toLocaleString('en-IN')}`);
+    if ((w.tile || 0) > 0) itemsList.push(`टाइल्स: ₹${(w.tile || 0).toLocaleString('en-IN')}`);
+
+    const itemsText = itemsList.length > 0 ? itemsList.join(", ") : `सीमेंट: ${w.bags || 0} बैग`;
 
     let msg = `नमस्ते ${w.name} जी! 🙏\n\n`;
-    msg += `✅ *ऑर्डर विवरण:*\n${itemsList.join("\n") || `• सीमेंट: ${w.bags || 0} बैग`}\n\n`;
-    if (w.couponNumber) {
-      msg += `🎟️ *कूपन नंबर:* #${w.couponNumber} (पॉइंट्स: ${w.pointsAwarded})\n`;
-    }
-    msg += `आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
-    msg += `⭐ आपके खाते में जुड़े: *+${w.pointsAwarded} पॉइंट्स*\n`;
-    msg += `🏆 आपका कुल पॉइंट्स बैलेंस: *${w.totalPoints} पॉइंट्स*\n\n`;
+    msg += `✅ *ऑर्डर स्वीकृत:* ${itemsText}\n`;
+    msg += `वर्धमान बिल्डिंग सल्यूशन को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
+    msg += `⭐ आपके मिले हैं: *+${w.pointsAwarded} पॉइंट्स*\n`;
+    msg += `🏆 आपका कुल पॉइंट्स है: *${w.totalPoints} पॉइंट्स*\n\n`;
     msg += `हार्दिक बधाई व शुभकामनाएं\n— वर्धमान ग्रुप, टोंक`;
 
     let phone = w.phone.replace(/\D/g, "");

@@ -47,10 +47,10 @@ export async function POST(request: Request) {
     // Rules:
     // Cement: 1 bag = 1 point
     // Sariya, Pole, Tile: 1 point per ₹1,000 purchase (each calculated independently)
-    const points_awarded = 
-      bags + 
-      Math.floor(sariya / 1000) + 
-      Math.floor(pole / 1000) + 
+    const points_awarded =
+      bags +
+    Math.floor(sariya / 1000) +
+      Math.floor(pole / 1000) +
       Math.floor(tile / 1000);
 
     // 1. Fetch dukandar
@@ -85,10 +85,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: orderError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      order, 
-      new_total: dukandar.total_points || 0 
+    return NextResponse.json({
+      success: true,
+      order,
+      new_total: dukandar.total_points || 0
     });
   } catch (error) {
     console.error(error);
