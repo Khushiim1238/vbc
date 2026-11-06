@@ -5,6 +5,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { CheckCircle, Clock, Loader2, XCircle, CheckSquare, Activity, Trophy, Package, Users, LayoutDashboard, ListChecks, Lock, Search, ChevronRight, Download, Phone, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import DukandarAdmin from "@/components/DukandarAdmin";
 
 interface PendingOrder {
   id: string;
@@ -51,6 +52,9 @@ const formatCoupons = (start: number | null | undefined, count: number) => {
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
+
+  const [entityMode, setEntityMode] = useState<'karigar' | 'dukandar'>('karigar');
+  const [dukandarPendingCount, setDukandarPendingCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'approvals' | 'dashboard' | 'directory'>('approvals');
 
   // --- Admin Approvals State ---
@@ -138,10 +142,24 @@ export default function AdminPage() {
       })
       .subscribe();
 
+    const adminDukandarSub = supabase
+      .channel('admin-dukandar-pending-count')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dukandar_orders' }, () => {
+        supabase
+          .from('dukandar_orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending')
+          .then(({ count }) => {
+            setDukandarPendingCount(count || 0);
+          });
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(adminOrderSub);
       supabase.removeChannel(dashKarigarSub);
       supabase.removeChannel(dashOrderSub);
+      supabase.removeChannel(adminDukandarSub);
     };
   }, []);
 
@@ -158,6 +176,16 @@ export default function AdminPage() {
       setPendingOrders((pendingRes.data as PendingOrder[]) || []);
       if (karigarsRes.data) setKarigars(karigarsRes.data as Karigar[]);
       if (ordersRes.data) setDashboardOrders(ordersRes.data as Order[]);
+
+      try {
+        const { count } = await supabase
+          .from("dukandar_orders")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending");
+        setDukandarPendingCount(count || 0);
+      } catch (e) {
+        // Safe fallback
+      }
     } catch (err: unknown) {
       console.error("Failed to fetch data", err);
       setAdminError(err instanceof Error ? err.message : "Failed to fetch data.");
@@ -562,57 +590,98 @@ export default function AdminPage() {
               </span>
             </div>
 
+            {/* Entity Mode Switcher (Karigar vs Dukandar) */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setEntityMode('karigar')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  entityMode === 'karigar'
+                    ? 'bg-white text-orange-600 shadow-sm border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>🔨 Karigar</span>
+                {pendingOrders.length > 0 && (
+                  <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                    {pendingOrders.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEntityMode('dukandar')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  entityMode === 'dukandar'
+                    ? 'bg-white text-blue-600 shadow-sm border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>🏪 Dukandar</span>
+                {dukandarPendingCount > 0 && (
+                  <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                    {dukandarPendingCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
           
-          {/* Sub-Tab Switcher (Approvals, Dashboard, Directory) */}
-          <div className="flex p-1 bg-slate-100 rounded-xl w-full sm:w-auto shadow-inner">
-            <button
-              type="button"
-              onClick={() => setActiveTab('approvals')}
-              className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === 'approvals' 
-                  ? 'bg-white text-slate-900 shadow-sm' 
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <ListChecks className="w-3.5 h-3.5 shrink-0 text-orange-600" />
-              <span>Approvals</span>
-              {pendingOrders.length > 0 && (
-                <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
-                  {pendingOrders.length}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('dashboard')}
-              className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === 'dashboard' 
-                  ? 'bg-white text-slate-900 shadow-sm' 
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5 shrink-0 text-slate-500" />
-              <span>Dashboard</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('directory')}
-              className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === 'directory' 
-                  ? 'bg-white text-slate-900 shadow-sm' 
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Search className="w-3.5 h-3.5 shrink-0 text-slate-500" />
-              <span>Directory</span>
-            </button>
-          </div>
+          {/* Sub-Tab Switcher (Approvals, Dashboard, Directory) for Karigar */}
+          {entityMode === 'karigar' && (
+            <div className="flex p-1 bg-slate-100 rounded-xl w-full sm:w-auto shadow-inner">
+              <button
+                type="button"
+                onClick={() => setActiveTab('approvals')}
+                className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === 'approvals' 
+                    ? 'bg-white text-slate-900 shadow-sm' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <ListChecks className="w-3.5 h-3.5 shrink-0 text-orange-600" />
+                <span>Approvals</span>
+                {pendingOrders.length > 0 && (
+                  <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                    {pendingOrders.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('dashboard')}
+                className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === 'dashboard' 
+                    ? 'bg-white text-slate-900 shadow-sm' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                <span>Dashboard</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('directory')}
+                className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === 'directory' 
+                    ? 'bg-white text-slate-900 shadow-sm' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Search className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                <span>Directory</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-2.5 sm:px-6 md:px-8 py-3 sm:py-6 space-y-4 sm:space-y-6 pb-24">
-        {adminError && activeTab === 'approvals' && (
+        {entityMode === 'dukandar' ? (
+          <DukandarAdmin />
+        ) : (
+          <>
+            {adminError && activeTab === 'approvals' && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-xs" role="alert">
                 <strong className="font-bold">Error loading data! </strong>
                 <span className="block sm:inline">{adminError}</span>
@@ -1113,6 +1182,8 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
+        )}
+          </>
         )}
       </main>
     </div>
