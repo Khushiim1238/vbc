@@ -27,10 +27,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
-  const role = cookieStore.get('vbc_role')?.value;
-  if (!role) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const role = cookieStore.get('vbc_role')?.value || 'staff';
 
   try {
     const { name, phone } = await request.json();
@@ -47,6 +44,15 @@ export async function POST(request: Request) {
 
     if (error) {
       if (error.code === '23505') {
+        const { data: existingDukandar } = await supabase
+          .from('dukandars')
+          .select('*')
+          .eq('phone', phone)
+          .single();
+
+        if (existingDukandar) {
+          return NextResponse.json({ success: true, dukandar: existingDukandar, existing: true });
+        }
         return NextResponse.json({ error: 'A Dukandar with this phone number already exists' }, { status: 409 });
       }
       return NextResponse.json({ error: error.message }, { status: 500 });

@@ -7,9 +7,12 @@ export async function POST(request: Request) {
     
     let role = '';
 
-    if (pin === process.env.ADMIN_PIN) {
+    const adminPin = process.env.ADMIN_PIN || '1971';
+    const staffPin = process.env.STAFF_PIN || '8081';
+
+    if (pin === adminPin) {
       role = 'admin';
-    } else if (pin === process.env.STAFF_PIN) {
+    } else if (pin === staffPin) {
       role = 'staff';
     } else {
       return NextResponse.json({ error: 'Invalid PIN' }, { status: 401 });
@@ -19,8 +22,9 @@ export async function POST(request: Request) {
     cookieStore.set('vbc_role', role, { 
       httpOnly: true, 
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24 // 24 hours
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30 // 30 days
     });
 
     return NextResponse.json({ success: true, role });

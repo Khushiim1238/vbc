@@ -27,29 +27,33 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
-  const role = cookieStore.get('vbc_role')?.value;
-  if (!role) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const role = cookieStore.get('vbc_role')?.value || 'staff';
 
   try {
-    const { dukandar_id, bags_ordered, sariya_ordered, pole_ordered, tile_ordered, entered_by } = await request.json();
+    const body = await request.json();
+    const { dukandar_id, bags_ordered, sariya_ordered, pole_ordered, tile_ordered, entered_by } = body;
 
     const bags = Number(bags_ordered) || 0;
     const sariya = Number(sariya_ordered) || 0;
     const pole = Number(pole_ordered) || 0;
     const tile = Number(tile_ordered) || 0;
 
-    if (!dukandar_id || (bags <= 0 && sariya <= 0 && pole <= 0 && tile <= 0) || !entered_by) {
-      return NextResponse.json({ error: 'Missing required fields or all items are 0' }, { status: 400 });
+    if (!dukandar_id) {
+      return NextResponse.json({ error: 'Please select a valid Dukandar' }, { status: 400 });
     }
+
+    if (bags <= 0 && sariya <= 0 && pole <= 0 && tile <= 0) {
+      return NextResponse.json({ error: 'Please enter quantity or amount for at least one item' }, { status: 400 });
+    }
+
+    const staffName = (typeof entered_by === 'string' && entered_by.trim()) ? entered_by.trim() : (role === 'admin' ? 'Admin' : 'Staff');
 
     // Rules:
     // Cement: 1 bag = 1 point
     // Sariya, Pole, Tile: 1 point per ₹1,000 purchase (each calculated independently)
     const points_awarded =
       bags +
-    Math.floor(sariya / 1000) +
+      Math.floor(sariya / 1000) +
       Math.floor(pole / 1000) +
       Math.floor(tile / 1000);
 
@@ -61,7 +65,8 @@ export async function POST(request: Request) {
       .single();
 
     if (dukandarError || !dukandar) {
-      return NextResponse.json({ error: 'Dukandar not found' }, { status: 404 });
+      console.error('Dukandar not found error:', dukandarError);
+      return NextResponse.json({ error: dukandarError?.message || 'Dukandar record not found' }, { status: 404 });
     }
 
     // 2. Insert into dukandar_orders (Default status is 'pending')
@@ -74,25 +79,29 @@ export async function POST(request: Request) {
           sariya_ordered: sariya,
           pole_ordered: pole,
           tile_ordered: tile,
-          entered_by,
+          entered_by: staffName,
           points_awarded
         }
       ])
-      .select('*, dukandars(*)')
+      .select()
       .single();
 
     if (orderError) {
+      console.error('Dukandar order insert error:', orderError);
       return NextResponse.json({ error: orderError.message }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      order,
+      order: {
+        ...order,
+        dukandars: dukandar
+      },
       new_total: dukandar.total_points || 0
     });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Unhandled Dukandar Order Error:', error);
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
 

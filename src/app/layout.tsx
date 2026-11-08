@@ -12,6 +12,14 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Vardhman Building Center",
   description: "Vardhman Rewards & Order Management System",
+  icons: {
+    icon: [
+      { url: '/v_logo.png?v=2' },
+      { url: '/favicon.ico?v=2' },
+    ],
+    shortcut: '/v_logo.png?v=2',
+    apple: '/v_logo.png?v=2',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

@@ -288,32 +288,40 @@ export default function DukandarOrderEntry() {
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!selectedDukandar && !isNewCustomer) {
+      toast.error("कृपया दुकानदार चुनें या '+ नया दुकानदार' पर क्लिक करें (Please select or add a Dukandar)");
+      return;
+    }
+
+    if (isNewCustomer) {
+      if (!newDukandarName.trim()) {
+        toast.error("कृपया दुकानदार / फर्म का नाम दर्ज करें (Please enter Firm Name)");
+        return;
+      }
+      const cleanPhone = newDukandarPhone.replace(/\D/g, '');
+      if (cleanPhone.length < 10) {
+        toast.error("कृपया 10 अंकों का मान्य मोबाइल नंबर दर्ज करें (Please enter 10-digit phone number)");
+        return;
+      }
+    }
+
     const submittedBags = Number(bags) || 0;
     const submittedSariya = Number(sariya) || 0;
     const submittedPole = Number(pole) || 0;
     const submittedTile = Number(tile) || 0;
 
     if (submittedBags <= 0 && submittedSariya <= 0 && submittedPole <= 0 && submittedTile <= 0) {
-      toast.error("Please enter quantity or amount for at least one item");
+      toast.error("कृपया कम से कम एक सामग्री दर्ज करें (Please enter at least one item: Cement, Sariya, Pole or Tiles)");
       return;
     }
 
     let targetDukandarId = selectedDukandar;
     let targetCustomerName = selectedDukandarName;
 
+    setSubmitting(true);
+
     if (isNewCustomer) {
-      if (!newDukandarName.trim() || !newDukandarPhone.trim()) {
-        toast.error("Please provide both name and phone number for the new dukandar");
-        return;
-      }
-
       const cleanPhone = newDukandarPhone.replace(/\D/g, '');
-      if (cleanPhone.length < 10) {
-        toast.error("Please enter a valid 10-digit phone number");
-        return;
-      }
-
-      setSubmitting(true);
       try {
         const createRes = await fetch("/api/dukandars", {
           method: "POST",
@@ -326,7 +334,7 @@ export default function DukandarOrderEntry() {
 
         const createData = await createRes.json();
         if (!createRes.ok || !createData.success) {
-          toast.error(createData.error || "Failed to create new dukandar");
+          toast.error(createData.error || "दुकानदार रजिस्टर करने में विफल (Failed to create/find dukandar)");
           setSubmitting(false);
           return;
         }
@@ -335,26 +343,24 @@ export default function DukandarOrderEntry() {
         targetCustomerName = createData.dukandar.name;
       } catch (err) {
         console.error("Error creating dukandar:", err);
-        toast.error("Network error while creating dukandar");
+        toast.error("Network error while registering dukandar");
         setSubmitting(false);
         return;
       }
     }
 
     if (!targetDukandarId) {
-      toast.error("Please select or add a dukandar");
+      toast.error("दुकानदार आईडी नहीं मिल सकी (Please select a Dukandar)");
+      setSubmitting(false);
       return;
     }
-
-    setSubmitting(true);
-    setSuccess(null);
 
     // Independent calculation:
     // Cement: 1 bag = 1 pt
     // Sariya, Pole, Tile: 1 pt per ₹1,000 purchase each
     const calculatedPoints =
       submittedBags +
-    Math.floor(submittedSariya / 1000) +
+      Math.floor(submittedSariya / 1000) +
       Math.floor(submittedPole / 1000) +
       Math.floor(submittedTile / 1000);
 
@@ -368,12 +374,12 @@ export default function DukandarOrderEntry() {
           sariya_ordered: submittedSariya,
           pole_ordered: submittedPole,
           tile_ordered: submittedTile,
-          entered_by: enteredBy,
+          entered_by: enteredBy || 'Staff',
         }),
       });
 
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setSuccess({
           customerName: targetCustomerName,
           bags: submittedBags,
@@ -382,6 +388,8 @@ export default function DukandarOrderEntry() {
           tile: submittedTile,
           points: data.order?.points_awarded ?? calculatedPoints,
         });
+
+        toast.success("✓ ऑर्डर सफलतापूर्वक दर्ज हुआ! (Order Submitted)");
 
         // Clear fields
         setBags("");
@@ -396,11 +404,11 @@ export default function DukandarOrderEntry() {
         setIsNewCustomer(false);
         fetchDukandars();
       } else {
-        toast.error(data.error || "Failed to submit order");
+        toast.error(data.error || "ऑर्डर दर्ज करने में समस्या आई (Failed to submit order)");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error submitting order:", err);
-      toast.error("Something went wrong");
+      toast.error(err?.message || "नेटवर्क त्रुटि: कृपया पुनः प्रयास करें");
     } finally {
       setSubmitting(false);
     }
@@ -449,71 +457,80 @@ export default function DukandarOrderEntry() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans selection:bg-blue-100 selection:text-blue-900 pb-16">
-      {/* Mobile-Optimized Native Header */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm sticky top-0 z-40">
+      {/* Mobile-Optimized Executive Header */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
           {/* Logo & Portal Identity */}
-          <div className="flex items-center gap-2">
-            <Image
-              src="/v_logo.png"
-              alt="Vardhman Logo"
-              width={82}
-              height={32}
-              className="object-contain"
-            />
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/60">
-              <span>🏪</span>
-              <span>Dukandar Portal</span>
+          <div className="flex items-center gap-2.5">
+            <Link href="/dukandar" className="flex items-center gap-2">
+              <Image
+                src="/v_logo.png"
+                alt="Vardhman Building Center"
+                width={86}
+                height={34}
+                className="object-contain"
+                priority
+              />
+            </Link>
+            <div className="hidden sm:block h-5 w-[1px] bg-slate-200" />
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-black bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-800 border border-blue-200/80 shadow-2xs">
+              <Store className="w-3.5 h-3.5 text-blue-600" />
+              <span>Dukandar Rewards</span>
             </div>
           </div>
 
           {/* Staff Badge */}
-          <button
-            type="button"
-            onClick={handleStaffBadgeClick}
-            title="Tap to change staff name"
-            className="flex items-center gap-1.5 text-xs bg-blue-50 text-blue-800 px-2.5 py-1 rounded-full font-semibold border border-blue-200/60 shrink-0 hover:bg-blue-100 active:scale-95 transition-all cursor-pointer"
-          >
-            <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-            <span>{enteredBy}</span>
-            <Edit2 className="w-2.5 h-2.5 opacity-60 ml-0.5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleStaffBadgeClick}
+              title="Tap to change staff name"
+              className="flex items-center gap-1.5 text-xs bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-800 px-3 py-1.5 rounded-full font-bold border border-slate-200 hover:border-blue-300 shadow-2xs active:scale-95 transition-all cursor-pointer"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>{enteredBy}</span>
+              <Edit2 className="w-2.5 h-2.5 opacity-60 ml-0.5" />
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Main Container */}
       <main className="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        {/* Native Segmented Tab Switcher */}
-        <div className="flex p-1 bg-slate-200/80 rounded-2xl w-full mb-5 shadow-inner">
+        {/* Executive Segmented Tab Switcher */}
+        <div className="flex p-1 bg-slate-200/70 rounded-2xl w-full mb-5 shadow-inner border border-slate-200/60">
           <button
             onClick={() => setActiveTab('order')}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'order'
-                ? 'bg-white text-blue-700 shadow-sm'
+            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === 'order'
+                ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5'
                 : 'text-slate-600 hover:text-slate-900'
-              }`}
+            }`}
           >
             <Plus className="w-4 h-4 shrink-0" />
-            <span>New Order</span>
+            <span>नया ऑर्डर (Order)</span>
           </button>
           <button
             onClick={() => setActiveTab('transactions')}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'transactions'
-                ? 'bg-white text-blue-700 shadow-sm'
+            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === 'transactions'
+                ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5'
                 : 'text-slate-600 hover:text-slate-900'
-              }`}
+            }`}
           >
             <Clock className="w-4 h-4 shrink-0" />
-            <span>Transactions</span>
+            <span>इतिहास (History)</span>
           </button>
           <button
             onClick={() => setActiveTab('customer_history')}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'customer_history'
-                ? 'bg-white text-blue-700 shadow-sm'
+            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === 'customer_history'
+                ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5'
                 : 'text-slate-600 hover:text-slate-900'
-              }`}
+            }`}
           >
             <Users className="w-4 h-4 shrink-0" />
-            <span>Passbook</span>
+            <span>पासबुक (Passbook)</span>
           </button>
         </div>
 
@@ -565,15 +582,19 @@ export default function DukandarOrderEntry() {
             <form onSubmit={handleSubmitOrder} className="space-y-4">
 
               {/* 1. Customer Selection Card */}
-              <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200/80">
+              <div className={`bg-white rounded-3xl p-4 sm:p-6 shadow-sm border transition-all ${
+                !selectedDukandar && !isNewCustomer 
+                  ? 'border-blue-300 ring-2 ring-blue-500/10' 
+                  : 'border-slate-200/90'
+              }`}>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm">
                       <Store className="w-4 h-4" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-sm">Dukandar Details</h3>
-                      <p className="text-[11px] text-slate-500">Select or add a Shopkeeper</p>
+                      <h3 className="font-bold text-slate-900 text-sm">दुकानदार / फर्म (Shopkeeper Profile)</h3>
+                      <p className="text-[11px] text-slate-500">Select firm or register a new customer</p>
                     </div>
                   </div>
 
@@ -582,35 +603,50 @@ export default function DukandarOrderEntry() {
                     <button
                       type="button"
                       onClick={() => setIsNewCustomer(false)}
-                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${!isNewCustomer ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'
-                        }`}
+                      className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                        !isNewCustomer ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                      }`}
                     >
-                      Existing
+                      मौजूदा (Search)
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIsNewCustomer(true)}
-                      className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${isNewCustomer ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'
-                        }`}
+                      onClick={() => {
+                        setIsNewCustomer(true);
+                        setSelectedDukandar("");
+                        setSelectedDukandarName("");
+                      }}
+                      className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                        isNewCustomer ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                      }`}
                     >
-                      + New
+                      + नया जोड़ें
                     </button>
                   </div>
                 </div>
 
                 {!isNewCustomer ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {/* Selected Banner */}
                     {selectedDukandar ? (
-                      <div className="p-3.5 bg-blue-50/90 border border-blue-200 rounded-2xl flex items-center justify-between animate-in fade-in duration-150">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-sm">
+                      <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50/60 border border-blue-200 rounded-2xl flex items-center justify-between animate-in fade-in duration-150">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-md">
                             {selectedDukandarName.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 text-sm leading-tight">{selectedDukandarName}</p>
-                            <p className="text-xs text-blue-700 mt-0.5">
-                              {dukandars.find(d => d.id === selectedDukandar)?.phone} • {dukandars.find(d => d.id === selectedDukandar)?.total_points || 0} Points
+                            <div className="flex items-center gap-2">
+                              <p className="font-black text-slate-900 text-base leading-tight">{selectedDukandarName}</p>
+                              <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                ✓ Selected
+                              </span>
+                            </div>
+                            <p className="text-xs text-blue-700 font-semibold mt-1 flex items-center gap-2">
+                              <span>📞 {dukandars.find(d => d.id === selectedDukandar)?.phone}</span>
+                              <span>•</span>
+                              <span className="bg-white/80 px-2 py-0.5 rounded-md border border-blue-200/80 text-slate-700">
+                                कुल पॉइंट्स: <strong>{dukandars.find(d => d.id === selectedDukandar)?.total_points || 0} ★</strong>
+                              </span>
                             </p>
                           </div>
                         </div>
@@ -621,9 +657,9 @@ export default function DukandarOrderEntry() {
                             setSelectedDukandarName("");
                             setSearchQuery("");
                           }}
-                          className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-white px-2.5 py-1.5 rounded-xl border border-blue-200 shadow-sm"
+                          className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-white px-3 py-2 rounded-xl border border-blue-200 shadow-sm active:scale-95 transition-all shrink-0 cursor-pointer"
                         >
-                          Change
+                          बदलें (Change)
                         </button>
                       </div>
                     ) : (
@@ -632,7 +668,7 @@ export default function DukandarOrderEntry() {
                           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                           <input
                             type="text"
-                            placeholder="Search dukandar by name or phone..."
+                            placeholder="दुकानदार का नाम या मोबाइल नंबर खोजें..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-9 pr-9 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all font-medium"
@@ -649,123 +685,162 @@ export default function DukandarOrderEntry() {
                           )}
                         </div>
 
-                        {/* Search Dropdown */}
-                        {searchQuery && !selectedDukandar && (
-                          <div className="mt-2 max-h-56 overflow-y-auto border border-blue-100 rounded-2xl bg-white shadow-xl divide-y divide-slate-100 animate-in fade-in duration-150">
-                            {filteredDukandars.length === 0 ? (
-                              <div className="p-4 text-center text-xs text-slate-500">
-                                No dukandar found. Click <strong>"+ New"</strong> above to register.
-                              </div>
-                            ) : (
-                              filteredDukandars.map((d) => (
-                                <button
-                                  key={d.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedDukandar(d.id);
-                                    setSelectedDukandarName(d.name);
-                                    setSearchQuery("");
-                                  }}
-                                  className="w-full p-3 text-left hover:bg-blue-50/70 transition-colors flex items-center justify-between gap-3 text-xs"
-                                >
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs">
-                                      {d.name.slice(0, 2).toUpperCase()}
-                                    </div>
-                                    <div>
-                                      <p className="font-bold text-slate-900 text-sm">{d.name}</p>
-                                      <p className="text-slate-400">{d.phone}</p>
-                                    </div>
+                        {/* Quick Selection List (Shows matches or recent dukandars) */}
+                        <div className="mt-2.5 max-h-60 overflow-y-auto border border-slate-200 rounded-2xl bg-white shadow-lg divide-y divide-slate-100">
+                          {(searchQuery ? filteredDukandars : dukandars.slice(0, 5)).length === 0 ? (
+                            <div className="p-4 text-center text-xs text-slate-500">
+                              कोई दुकानदार नहीं मिला। ऊपर <strong>"+ नया जोड़ें"</strong> पर क्लिक करें।
+                            </div>
+                          ) : (
+                            (searchQuery ? filteredDukandars : dukandars.slice(0, 5)).map((d) => (
+                              <button
+                                key={d.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDukandar(d.id);
+                                  setSelectedDukandarName(d.name);
+                                  setSearchQuery("");
+                                }}
+                                className="w-full p-3 text-left hover:bg-blue-50/80 transition-colors flex items-center justify-between gap-3 text-xs cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs">
+                                    {d.name.slice(0, 2).toUpperCase()}
                                   </div>
-                                  <span className="font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100 shrink-0">
-                                    {d.total_points} ★
-                                  </span>
-                                </button>
-                              ))
-                            )}
-                          </div>
-                        )}
+                                  <div>
+                                    <p className="font-bold text-slate-900 text-sm leading-tight">{d.name}</p>
+                                    <p className="text-slate-500 font-medium text-[11px]">{d.phone}</p>
+                                  </div>
+                                </div>
+                                <span className="font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200 shrink-0">
+                                  {d.total_points} ★
+                                </span>
+                              </button>
+                            ))
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
                 ) : (
                   <div className="space-y-3 pt-1 animate-in fade-in duration-150">
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1">Dukandar / Firm Name *</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">दुकानदार / फर्म का नाम (Firm Name) *</label>
                       <input
                         type="text"
-                        placeholder="e.g. Agarwal Traders"
+                        placeholder="e.g. Agarwal Traders, Tonk"
                         value={newDukandarName}
                         onChange={(e) => setNewDukandarName(e.target.value)}
                         className="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-blue-500 font-medium"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1">Mobile Number (10 digits) *</label>
-                      <input
-                        type="tel"
-                        maxLength={10}
-                        placeholder="e.g. 9876543210"
-                        value={newDukandarPhone}
-                        onChange={(e) => setNewDukandarPhone(e.target.value.replace(/\D/g, ''))}
-                        className="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-blue-500 font-medium"
-                      />
+                      <label className="block text-xs font-bold text-slate-700 mb-1">मोबाइल नंबर (10-Digit Mobile) *</label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          placeholder="9876543210"
+                          value={newDukandarPhone}
+                          onChange={(e) => setNewDukandarPhone(e.target.value.replace(/\D/g, ''))}
+                          className="w-full pl-12 pr-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-blue-500 font-medium"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
 
               {/* 2. Order Quantities Card (Cement & Other Materials) */}
-              <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200/80 space-y-5">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                  <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
-                    <Package className="w-4 h-4" />
+              <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200/90 space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                      <Package className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm">ऑर्डर सामग्री (Order Quantities)</h3>
+                      <p className="text-[11px] text-slate-500">सीमेंट: 1 बैग = 1 Pt • सरिया/पोल/टाइल्स: ₹1,000 = 1 Pt</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm">Order Items</h3>
-                    <p className="text-[11px] text-slate-500">Cement: 1 Bag = 1 Pt • Sariya/Pole/Tiles: ₹1,000 = 1 Pt (Independent)</p>
-                  </div>
+                  <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                    स्वतंत्र गणना (Independent)
+                  </span>
                 </div>
 
                 {/* Cement Bags */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Cement Bags (सीमेंट बोरी)
+                <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">
+                      सीमेंट बोरी (Cement Bags)
                     </label>
-                    <span className="text-[10px] text-blue-600 font-semibold">1 Bag = 1 Point</span>
+                    <span className="text-[11px] text-blue-700 font-bold bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                      1 बैग = 1 पॉइंट
+                    </span>
                   </div>
+
                   <div className="relative">
                     <input
                       type="number"
                       min="0"
                       placeholder="0"
                       value={bags}
-                      onChange={(e) => setBags(e.target.value === "" ? "" : Number(e.target.value))}
-                      className="w-full pl-4 pr-14 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xl font-black text-slate-900 focus:outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
+                      onChange={(e) => setBags(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
+                      className="w-full pl-4 pr-16 py-3.5 bg-white border border-slate-200 rounded-2xl text-2xl font-black text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all font-mono"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 uppercase select-none">
                       Bags
                     </span>
                   </div>
+
+                  {/* Quick Add Buttons for Cement */}
+                  <div className="flex items-center gap-2 mt-2.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Quick Add:</span>
+                    {[10, 25, 50, 100].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setBags((prev) => (Number(prev) || 0) + num)}
+                        className="text-xs font-bold bg-white hover:bg-blue-50 hover:text-blue-700 text-slate-600 px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs active:scale-95 transition-all cursor-pointer"
+                      >
+                        +{num}
+                      </button>
+                    ))}
+                    {Number(bags) > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setBags("")}
+                        className="text-[11px] font-bold text-rose-600 hover:text-rose-800 ml-auto cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+
                   {Number(bags) > 0 && (
-                    <p className="text-[11px] text-slate-500 mt-1 pl-1">
-                      {bags} Bags → <span className="font-bold text-blue-700">{bags} Points</span>
+                    <p className="text-xs text-blue-700 font-bold mt-2">
+                      ✓ {bags} Bags → +{bags} Points
                     </p>
                   )}
                 </div>
 
                 {/* 3 Building Material Fields (Sariya, Pole, Tiles) */}
                 <div className="pt-2 border-t border-slate-100">
-                  <p className="text-xs font-black text-slate-800 uppercase tracking-wider mb-3">
-                    Other Materials / अन्य सामग्री (₹1,000 = 1 Point Each)
-                  </p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                      अन्य सामग्री (₹1,000 खरीद = 1 पॉइंट प्रत्येक)
+                    </p>
+                    <span className="text-[10px] text-slate-400 font-semibold">₹1,000 = 1 pt</span>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                     {/* Sariya */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Sariya (सरिया ₹)
+                    <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        सरिया बिल (Sariya ₹)
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
@@ -774,25 +849,25 @@ export default function DukandarOrderEntry() {
                         <input
                           type="number"
                           min="0"
-                          placeholder="e.g. 50000"
+                          placeholder="0"
                           value={sariya}
-                          onChange={(e) => setSariya(e.target.value === "" ? "" : Number(e.target.value))}
-                          className="w-full pl-7 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
+                          onChange={(e) => setSariya(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
+                          className="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-mono"
                         />
                       </div>
                       {Number(sariya) > 0 ? (
-                        <p className="text-[10px] text-slate-500 mt-1 pl-1">
-                          ₹{Number(sariya).toLocaleString('en-IN')} → <span className="font-bold text-blue-700">{Math.floor(Number(sariya) / 1000)} pts</span>
+                        <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
+                          ₹{Number(sariya).toLocaleString('en-IN')} → +{Math.floor(Number(sariya) / 1000)} pts
                         </p>
                       ) : (
-                        <p className="text-[10px] text-slate-400 mt-1 pl-1">₹1,000 = 1 pt</p>
+                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹1,000 = 1 pt</p>
                       )}
                     </div>
 
                     {/* Pole */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Pole (पोल ₹)
+                    <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        पोल बिल (Pole ₹)
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
@@ -801,25 +876,25 @@ export default function DukandarOrderEntry() {
                         <input
                           type="number"
                           min="0"
-                          placeholder="e.g. 20000"
+                          placeholder="0"
                           value={pole}
-                          onChange={(e) => setPole(e.target.value === "" ? "" : Number(e.target.value))}
-                          className="w-full pl-7 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
+                          onChange={(e) => setPole(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
+                          className="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-mono"
                         />
                       </div>
                       {Number(pole) > 0 ? (
-                        <p className="text-[10px] text-slate-500 mt-1 pl-1">
-                          ₹{Number(pole).toLocaleString('en-IN')} → <span className="font-bold text-blue-700">{Math.floor(Number(pole) / 1000)} pts</span>
+                        <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
+                          ₹{Number(pole).toLocaleString('en-IN')} → +{Math.floor(Number(pole) / 1000)} pts
                         </p>
                       ) : (
-                        <p className="text-[10px] text-slate-400 mt-1 pl-1">₹1,000 = 1 pt</p>
+                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹1,000 = 1 pt</p>
                       )}
                     </div>
 
                     {/* Tiles */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Tiles (टाइल्स ₹)
+                    <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        टाइल्स बिल (Tiles ₹)
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
@@ -828,18 +903,18 @@ export default function DukandarOrderEntry() {
                         <input
                           type="number"
                           min="0"
-                          placeholder="e.g. 30000"
+                          placeholder="0"
                           value={tile}
-                          onChange={(e) => setTile(e.target.value === "" ? "" : Number(e.target.value))}
-                          className="w-full pl-7 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
+                          onChange={(e) => setTile(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
+                          className="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-mono"
                         />
                       </div>
                       {Number(tile) > 0 ? (
-                        <p className="text-[10px] text-slate-500 mt-1 pl-1">
-                          ₹{Number(tile).toLocaleString('en-IN')} → <span className="font-bold text-blue-700">{Math.floor(Number(tile) / 1000)} pts</span>
+                        <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
+                          ₹{Number(tile).toLocaleString('en-IN')} → +{Math.floor(Number(tile) / 1000)} pts
                         </p>
                       ) : (
-                        <p className="text-[10px] text-slate-400 mt-1 pl-1">₹1,000 = 1 pt</p>
+                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹1,000 = 1 pt</p>
                       )}
                     </div>
                   </div>
@@ -847,32 +922,32 @@ export default function DukandarOrderEntry() {
 
                 {/* Live Point Award Banner */}
                 {(Number(bags) > 0 || Number(sariya) > 0 || Number(pole) > 0 || Number(tile) > 0) && (
-                  <div className="p-3.5 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-blue-500/5 border border-blue-200/80 rounded-2xl flex items-center justify-between animate-in fade-in duration-150">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm font-bold text-sm">
+                  <div className="p-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white rounded-2xl flex items-center justify-between shadow-lg shadow-blue-600/20 animate-in fade-in duration-150">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/20 text-white flex items-center justify-center font-black text-base backdrop-blur-sm">
                         ★
                       </div>
                       <div>
-                        <p className="text-[11px] font-bold text-blue-950 uppercase tracking-wider">Coupon Points Preview</p>
-                        <p className="text-lg font-black text-blue-600 leading-tight">
+                        <p className="text-[11px] font-bold text-blue-100 uppercase tracking-wider">अनुमानित कुल पॉइंट्स (Points Preview)</p>
+                        <p className="text-2xl font-black leading-tight text-white">
                           +{((Number(bags) || 0) + Math.floor((Number(sariya) || 0) / 1000) + Math.floor((Number(pole) || 0) / 1000) + Math.floor((Number(tile) || 0) / 1000))} Points
                         </p>
-                        <p className="text-[10px] text-blue-800 font-medium mt-0.5">
+                        <p className="text-[11px] text-blue-100 mt-0.5">
                           {[
-                            Number(bags) > 0 ? `${Number(bags)} Cement` : null,
-                            Number(sariya) >= 1000 ? `${Math.floor(Number(sariya) / 1000)} Sariya` : null,
-                            Number(pole) >= 1000 ? `${Math.floor(Number(pole) / 1000)} Pole` : null,
-                            Number(tile) >= 1000 ? `${Math.floor(Number(tile) / 1000)} Tiles` : null,
+                            Number(bags) > 0 ? `${Number(bags)} Bags Cement` : null,
+                            Number(sariya) >= 1000 ? `₹${Number(sariya).toLocaleString('en-IN')} Sariya` : null,
+                            Number(pole) >= 1000 ? `₹${Number(pole).toLocaleString('en-IN')} Pole` : null,
+                            Number(tile) >= 1000 ? `₹${Number(tile).toLocaleString('en-IN')} Tiles` : null,
                           ].filter(Boolean).join(" + ") || "Need min 1 bag or ₹1,000 per item"}
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-1 rounded-lg border border-slate-200 block">
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] font-bold text-white bg-white/20 px-2.5 py-1 rounded-lg block backdrop-blur-sm">
                         1 Bag = 1 Pt
                       </span>
-                      <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-1 rounded-lg border border-slate-200 block mt-1">
-                        ₹1k Item = 1 Pt
+                      <span className="text-[10px] font-bold text-white bg-white/20 px-2.5 py-1 rounded-lg block mt-1 backdrop-blur-sm">
+                        ₹1k = 1 Pt
                       </span>
                     </div>
                   </div>
@@ -882,18 +957,25 @@ export default function DukandarOrderEntry() {
               {/* 3. Action Submit Button */}
               <button
                 type="submit"
-                disabled={submitting || (!selectedDukandar && !isNewCustomer) || ((Number(bags) || 0) <= 0 && (Number(sariya) || 0) <= 0 && (Number(pole) || 0) <= 0 && (Number(tile) || 0) <= 0)}
-                className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-2xl font-black text-base transition-all shadow-lg shadow-blue-600/25 active:scale-[0.98] flex items-center justify-center gap-2"
+                disabled={submitting}
+                className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-black text-base transition-all shadow-xl shadow-blue-600/30 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
               >
                 {submitting ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Submitting Order...
+                    <span>ऑर्डर सबमिट हो रहा है... (Submitting...)</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="w-5 h-5" />
-                    Confirm & Submit Order
+                    <span>
+                      {!selectedDukandar && !isNewCustomer 
+                        ? "दुकानदार चुनें (Select Dukandar to Submit)" 
+                        : ((Number(bags) || 0) <= 0 && (Number(sariya) || 0) <= 0 && (Number(pole) || 0) <= 0 && (Number(tile) || 0) <= 0)
+                        ? "सामग्री दर्ज करें (Enter Items to Submit)"
+                        : "✓ ऑर्डर सबमिट करें (Confirm & Submit Order)"
+                      }
+                    </span>
                   </>
                 )}
               </button>
