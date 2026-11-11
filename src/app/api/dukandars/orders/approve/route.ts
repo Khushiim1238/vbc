@@ -33,44 +33,38 @@ export async function POST(request: Request) {
     const current_points = dukandar?.total_points || 0;
     const balance_after = current_points + points_awarded;
 
-    // 2. Fetch atomic coupon sequence for Dukandar (starts from 1, separate from Karigar)
+    // 2. Fetch atomic coupon sequence for Dukandar if sequence exists
     let assignedCouponNumber: number | null = null;
     if (points_awarded > 0) {
       try {
         const { data: nextCoupon, error: seqError } = await supabase.rpc('get_next_dukandar_coupon');
         if (!seqError && typeof nextCoupon === 'number') {
           assignedCouponNumber = nextCoupon;
-        } else {
-          // Safe fallback if RPC is not yet created in Supabase
-          const { data: maxOrder } = await supabase
-            .from('dukandar_orders')
-            .select('coupon_number')
-            .not('coupon_number', 'is', null)
-            .order('coupon_number', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          assignedCouponNumber = (maxOrder?.coupon_number || 0) + 1;
         }
       } catch {
-        const { data: maxOrder } = await supabase
-          .from('dukandar_orders')
-          .select('coupon_number')
-          .not('coupon_number', 'is', null)
-          .order('coupon_number', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        assignedCouponNumber = (maxOrder?.coupon_number || 0) + 1;
+        // Safe fallback if sequence is not yet created
       }
     }
 
-    // 3. Update order status to approved with coupon_number
-    const { error: updateError } = await supabase
+    // 3. Update order status to approved (with coupon_number if supported)
+    const updatePayload: Record<string, any> = { status: 'approved' };
+    if (assignedCouponNumber !== null) {
+      updatePayload.coupon_number = assignedCouponNumber;
+    }
+
+    let { error: updateError } = await supabase
       .from('dukandar_orders')
-      .update({ 
-        status: 'approved',
-        coupon_number: assignedCouponNumber
-      })
+      .update(updatePayload)
       .eq('id', order_id);
+
+    // Fallback if coupon_number column is not present in Supabase table yet
+    if (updateError && (updateError.message?.includes('coupon_number') || updateError.code === 'PGRST204')) {
+      const fallbackResult = await supabase
+        .from('dukandar_orders')
+        .update({ status: 'approved' })
+        .eq('id', order_id);
+      updateError = fallbackResult.error;
+    }
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
