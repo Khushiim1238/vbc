@@ -68,6 +68,7 @@ export default function DukandarOrderEntry() {
   const [pole, setPole] = useState<number | "">("");
   const [tile, setTile] = useState<number | "">("");
   const [enteredBy, setEnteredBy] = useState("Staff");
+  const [staffNameInput, setStaffNameInput] = useState("");
 
   // Customer History Tab State
   const [historySearchQuery, setHistorySearchQuery] = useState("");
@@ -107,6 +108,7 @@ export default function DukandarOrderEntry() {
       const trimmed = newName.trim();
       localStorage.setItem("vbc_staff_name", trimmed);
       setEnteredBy(trimmed);
+      setStaffNameInput(trimmed);
       toast.success(`Staff name set to ${trimmed}`);
     }
   };
@@ -115,12 +117,16 @@ export default function DukandarOrderEntry() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        const savedName = getStoredStaffName();
+        if (savedName && savedName !== 'Staff' && savedName !== 'Admin') {
+          setStaffNameInput(savedName);
+        }
         const res = await fetch('/api/auth/me');
         const data = await res.json();
         if (data.authenticated) {
           setIsAuthenticated(true);
-          const savedName = getStoredStaffName(data.role);
-          setEnteredBy(savedName);
+          const activeRoleName = getStoredStaffName(data.role);
+          setEnteredBy(activeRoleName);
           fetchDukandars();
         } else {
           setLoading(false);
@@ -135,6 +141,14 @@ export default function DukandarOrderEntry() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!staffNameInput.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
+    if (!passwordInput.trim()) {
+      toast.error("Please enter your staff PIN");
+      return;
+    }
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -143,11 +157,12 @@ export default function DukandarOrderEntry() {
       });
       const data = await res.json();
       if (res.ok) {
+        const trimmedName = staffNameInput.trim();
+        localStorage.setItem("vbc_staff_name", trimmedName);
+        setEnteredBy(trimmedName);
         setIsAuthenticated(true);
-        const savedName = getStoredStaffName(data.role);
-        setEnteredBy(savedName);
         fetchDukandars();
-        toast.success("Welcome back!");
+        toast.success(`Welcome back, ${trimmedName}!`);
       } else {
         toast.error(data.error || "Invalid PIN");
         setPasswordInput("");
@@ -426,28 +441,57 @@ export default function DukandarOrderEntry() {
     d.phone.includes(historySearchQuery)
   );
 
-  // Authentication Screen
+  // Authentication Screen (Light Theme)
   if (!isAuthenticated && !loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="bg-white/10 backdrop-blur-xl border border-white/15 p-8 rounded-3xl w-full max-w-sm text-center shadow-2xl">
-          <div className="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 ring-1 ring-blue-500/30">
-            <Lock className="w-8 h-8" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Dukandar Portal</h2>
-          <p className="text-slate-400 text-sm mb-6">Enter your 4-digit staff PIN</p>
-          <form onSubmit={handleLogin}>
-            <input
-              type="password"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              className="w-full text-center text-3xl tracking-[0.5em] p-4 bg-white/5 border border-white/10 rounded-2xl text-white mb-6 focus:outline-none focus:border-blue-400 transition-all font-mono"
-              placeholder="••••"
-              autoFocus
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-slate-100 flex items-center justify-center p-4">
+        <div className="bg-white border border-slate-200/80 p-8 rounded-3xl w-full max-w-sm text-center shadow-xl shadow-slate-200/50 animate-in fade-in zoom-in-95 duration-200">
+          <div className="flex justify-center mb-5">
+            <Image
+              src="/v_logo.png"
+              alt="Vardhman Logo"
+              width={96}
+              height={38}
+              className="object-contain"
             />
+          </div>
+          <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-100 shadow-xs">
+            <Lock className="w-7 h-7" />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 mb-1">Dukandar Staff Portal</h2>
+          <p className="text-slate-500 text-xs font-medium mb-6">Enter your name and PIN to log in</p>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block text-left mb-1.5 pl-1">
+                Your Name
+              </label>
+              <input
+                type="text"
+                value={staffNameInput}
+                onChange={(e) => setStaffNameInput(e.target.value)}
+                className="w-full text-center text-base p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-semibold focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 transition-all shadow-inner placeholder:text-slate-400 placeholder:font-normal"
+                placeholder="e.g. Ramraj"
+                required
+                autoFocus={!staffNameInput}
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block text-left mb-1.5 pl-1">
+                Staff PIN
+              </label>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full text-center text-3xl tracking-[0.5em] p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-mono focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 transition-all shadow-inner placeholder:tracking-normal placeholder:text-slate-300"
+                placeholder="••••"
+                required
+                autoFocus={!!staffNameInput}
+              />
+            </div>
             <button
               type="submit"
-              className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-semibold transition-all shadow-lg shadow-blue-600/30 active:scale-95"
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/25 cursor-pointer mt-2"
             >
               Unlock Portal
             </button>
