@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.dukandars (
     registered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. Dukandar Orders Table (Cement: 1 bag = 1 pt; Sariya/Pole/Tiles: ₹1,000 = 1 pt each independently)
+-- 2. Dukandar Orders Table (Cement: 1 bag = 1 pt; Sariya: ₹1,000 = 1 pt; Pole: 1 pole = 1 pt; Others: ₹100 = 1 pt)
 CREATE TABLE IF NOT EXISTS public.dukandar_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     dukandar_id UUID NOT NULL REFERENCES public.dukandars(id) ON DELETE CASCADE,

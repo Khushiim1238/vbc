@@ -50,12 +50,14 @@ export async function POST(request: Request) {
 
     // Point Calculation:
     // Cement: 1 bag = 1 point
-    // Sariya, Pole, Tile: 1 point per ₹1,000 purchase (each calculated independently)
+    // Sariya: 1 point per ₹1,000 purchase
+    // Pole: 1 point for 1 pole (1 pole = 1 point)
+    // Others (Tile, Cover Block): 1 point for ₹100 purchase
     const points_awarded =
       bags +
       Math.floor(sariya / 1000) +
-      Math.floor(pole / 1000) +
-      Math.floor(tile / 1000);
+      pole +
+      Math.floor(tile / 100);
 
     // 1. Fetch dukandar
     const { data: dukandar, error: dukandarError } = await supabase

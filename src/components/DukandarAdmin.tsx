@@ -580,8 +580,8 @@ export default function DukandarAdmin() {
                         {[
                           order.bags_ordered > 0 ? `${order.bags_ordered} Bags Cement` : null,
                           order.sariya_ordered > 0 ? `₹${order.sariya_ordered.toLocaleString('en-IN')} Sariya` : null,
-                          order.pole_ordered > 0 ? `₹${order.pole_ordered.toLocaleString('en-IN')} Pole` : null,
-                          order.tile_ordered > 0 ? `₹${order.tile_ordered.toLocaleString('en-IN')} Tiles` : null,
+                          order.pole_ordered > 0 ? `${order.pole_ordered} Poles` : null,
+                          order.tile_ordered > 0 ? `₹${order.tile_ordered.toLocaleString('en-IN')} Others` : null,
                         ].filter(Boolean).join(" • ") || `${order.bags_ordered || 0} Bags Cement`}
                       </span>
                       <span className="text-xs text-slate-600 font-medium flex items-center gap-1.5 shrink-0">
@@ -753,8 +753,8 @@ export default function DukandarAdmin() {
                           {[
                             o.bags_ordered > 0 ? `${o.bags_ordered} Bags Cement` : null,
                             o.sariya_ordered > 0 ? `₹${o.sariya_ordered.toLocaleString('en-IN')} Sariya` : null,
-                            o.pole_ordered > 0 ? `₹${o.pole_ordered.toLocaleString('en-IN')} Pole` : null,
-                            o.tile_ordered > 0 ? `₹${o.tile_ordered.toLocaleString('en-IN')} Tiles` : null,
+                            o.pole_ordered > 0 ? `${o.pole_ordered} Poles` : null,
+                            o.tile_ordered > 0 ? `₹${o.tile_ordered.toLocaleString('en-IN')} Others` : null,
                           ].filter(Boolean).join(" • ") || `${o.bags_ordered || 0} Bags Cement`} • {new Date(o.order_time).toLocaleDateString("en-IN")}
                         </p>
                       </div>
@@ -947,8 +947,8 @@ export default function DukandarAdmin() {
                           {[
                             h.bags_ordered > 0 ? `Cement: ${h.bags_ordered} Bags` : null,
                             h.sariya_ordered > 0 ? `Sariya: ₹${h.sariya_ordered.toLocaleString('en-IN')}` : null,
-                            h.pole_ordered > 0 ? `Pole: ₹${h.pole_ordered.toLocaleString('en-IN')}` : null,
-                            h.tile_ordered > 0 ? `Tiles: ₹${h.tile_ordered.toLocaleString('en-IN')}` : null,
+                            h.pole_ordered > 0 ? `Pole: ${h.pole_ordered} Pcs` : null,
+                            h.tile_ordered > 0 ? `Others: ₹${h.tile_ordered.toLocaleString('en-IN')}` : null,
                           ].filter(Boolean).join(" • ") || `Cement: ${h.bags_ordered || 0} Bags`}
                         </p>
                         <p className="text-[11px] text-slate-400">

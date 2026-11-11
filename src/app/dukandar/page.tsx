@@ -247,8 +247,8 @@ export default function DukandarOrderEntry() {
     const itemsList: string[] = [];
     if (order.bags_ordered > 0) itemsList.push(`सीमेंट: ${order.bags_ordered} बैग`);
     if (order.sariya_ordered > 0) itemsList.push(`सरिया: ₹${order.sariya_ordered.toLocaleString('en-IN')}`);
-    if (order.pole_ordered > 0) itemsList.push(`पोल: ₹${order.pole_ordered.toLocaleString('en-IN')}`);
-    if (order.tile_ordered > 0) itemsList.push(`टाइल्स: ₹${order.tile_ordered.toLocaleString('en-IN')}`);
+    if (order.pole_ordered > 0) itemsList.push(`पोल: ${order.pole_ordered} नग`);
+    if (order.tile_ordered > 0) itemsList.push(`अन्य (टाइल्स, कवर ब्लॉक): ₹${order.tile_ordered.toLocaleString('en-IN')}`);
 
     const itemsText = itemsList.length > 0 ? itemsList.join(", ") : `सीमेंट: ${order.bags_ordered || 0} बैग`;
 
@@ -355,14 +355,16 @@ export default function DukandarOrderEntry() {
       return;
     }
 
-    // Independent calculation:
+    // Calculation:
     // Cement: 1 bag = 1 pt
-    // Sariya, Pole, Tile: 1 pt per ₹1,000 purchase each
+    // Sariya: 1 pt per ₹1,000 purchase
+    // Pole: 1 pole = 1 pt
+    // Others (Tile, Cover Block): 1 pt per ₹100 purchase
     const calculatedPoints =
       submittedBags +
       Math.floor(submittedSariya / 1000) +
-      Math.floor(submittedPole / 1000) +
-      Math.floor(submittedTile / 1000);
+      submittedPole +
+      Math.floor(submittedTile / 100);
 
     try {
       const res = await fetch("/api/dukandars/orders", {
@@ -558,8 +560,8 @@ export default function DukandarOrderEntry() {
                       {[
                         success.bags > 0 ? `${success.bags} Bags Cement` : null,
                         success.sariya > 0 ? `₹${success.sariya.toLocaleString('en-IN')} Sariya` : null,
-                        success.pole > 0 ? `₹${success.pole.toLocaleString('en-IN')} Pole` : null,
-                        success.tile > 0 ? `₹${success.tile.toLocaleString('en-IN')} Tiles` : null,
+                        success.pole > 0 ? `${success.pole} Poles` : null,
+                        success.tile > 0 ? `₹${success.tile.toLocaleString('en-IN')} Others (Tile/Cover Block)` : null,
                       ].filter(Boolean).join(" • ")}
                     </p>
                   </div>
@@ -763,7 +765,7 @@ export default function DukandarOrderEntry() {
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-900 text-sm">Order Items</h3>
-                      <p className="text-[11px] text-slate-500">Cement: 1 Bag = 1 Pt • Sariya/Pole/Tiles: ₹1,000 = 1 Pt</p>
+                      <p className="text-[11px] text-slate-500">Cement: 1 Bag = 1 Pt • Sariya: ₹1k = 1 Pt • Pole: 1 Pole = 1 Pt • Others: ₹100 = 1 Pt</p>
                     </div>
                   </div>
                 </div>
@@ -824,13 +826,13 @@ export default function DukandarOrderEntry() {
                   )}
                 </div>
 
-                {/* 3 Building Material Fields (Sariya, Pole, Tiles) */}
+                {/* 3 Building Material Fields (Sariya, Pole, Others) */}
                 <div className="pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                      Other Materials (₹1,000 = 1 Point)
+                      Other Materials
                     </p>
-                    <span className="text-[10px] text-slate-400 font-semibold">₹1,000 = 1 pt</span>
+                    <span className="text-[10px] text-slate-400 font-semibold">Pole: 1 Pt/Pc • Others: 1 Pt/₹100</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
@@ -863,36 +865,46 @@ export default function DukandarOrderEntry() {
 
                     {/* Pole */}
                     <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Pole (₹)
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
-                          ₹
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700">
+                          Pole (Qty)
+                        </label>
+                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                          1 Pole = 1 Pt
                         </span>
+                      </div>
+                      <div className="relative">
                         <input
                           type="number"
                           min="0"
                           placeholder="0"
                           value={pole}
                           onChange={(e) => setPole(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
-                          className="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-mono"
+                          className="w-full pl-3.5 pr-14 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-mono"
                         />
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 uppercase select-none">
+                          Poles
+                        </span>
                       </div>
                       {Number(pole) > 0 ? (
                         <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
-                          ₹{Number(pole).toLocaleString('en-IN')} → +{Math.floor(Number(pole) / 1000)} pts
+                          {Number(pole)} Poles → +{Number(pole)} pts
                         </p>
                       ) : (
-                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹1,000 = 1 pt</p>
+                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">1 Pole = 1 pt</p>
                       )}
                     </div>
 
-                    {/* Tiles */}
+                    {/* Others (Tile, Cover Block) */}
                     <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Tiles (₹)
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700 truncate" title="Others (Tile, Cover Block)">
+                          Others (Tile, Cover Block)
+                        </label>
+                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
+                          ₹100 = 1 Pt
+                        </span>
+                      </div>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
                           ₹
@@ -908,10 +920,10 @@ export default function DukandarOrderEntry() {
                       </div>
                       {Number(tile) > 0 ? (
                         <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
-                          ₹{Number(tile).toLocaleString('en-IN')} → +{Math.floor(Number(tile) / 1000)} pts
+                          ₹{Number(tile).toLocaleString('en-IN')} → +{Math.floor(Number(tile) / 100)} pts
                         </p>
                       ) : (
-                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹1,000 = 1 pt</p>
+                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹100 = 1 pt</p>
                       )}
                     </div>
                   </div>
@@ -927,24 +939,24 @@ export default function DukandarOrderEntry() {
                       <div>
                         <p className="text-[11px] font-bold text-blue-100 uppercase tracking-wider">Points Preview</p>
                         <p className="text-2xl font-black leading-tight text-white">
-                          +{((Number(bags) || 0) + Math.floor((Number(sariya) || 0) / 1000) + Math.floor((Number(pole) || 0) / 1000) + Math.floor((Number(tile) || 0) / 1000))} Points
+                          +{((Number(bags) || 0) + Math.floor((Number(sariya) || 0) / 1000) + (Number(pole) || 0) + Math.floor((Number(tile) || 0) / 100))} Points
                         </p>
                         <p className="text-[11px] text-blue-100 mt-0.5">
                           {[
                             Number(bags) > 0 ? `${Number(bags)} Bags Cement` : null,
                             Number(sariya) >= 1000 ? `₹${Number(sariya).toLocaleString('en-IN')} Sariya` : null,
-                            Number(pole) >= 1000 ? `₹${Number(pole).toLocaleString('en-IN')} Pole` : null,
-                            Number(tile) >= 1000 ? `₹${Number(tile).toLocaleString('en-IN')} Tiles` : null,
-                          ].filter(Boolean).join(" + ") || "Need min 1 bag or ₹1,000 per item"}
+                            Number(pole) > 0 ? `${Number(pole)} Poles` : null,
+                            Number(tile) >= 100 ? `₹${Number(tile).toLocaleString('en-IN')} Others` : null,
+                          ].filter(Boolean).join(" + ") || "Need min 1 bag, 1 pole, or ₹100 others"}
                         </p>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
                       <span className="text-[10px] font-bold text-white bg-white/20 px-2.5 py-1 rounded-lg block backdrop-blur-sm">
-                        1 Bag = 1 Pt
+                        1 Pole = 1 Pt
                       </span>
                       <span className="text-[10px] font-bold text-white bg-white/20 px-2.5 py-1 rounded-lg block mt-1 backdrop-blur-sm">
-                        ₹1k = 1 Pt
+                        ₹100 = 1 Pt
                       </span>
                     </div>
                   </div>
@@ -1043,8 +1055,8 @@ export default function DukandarOrderEntry() {
                             {[
                               t.bags_ordered > 0 ? `${t.bags_ordered} Bags Cement` : null,
                               t.sariya_ordered > 0 ? `₹${t.sariya_ordered.toLocaleString('en-IN')} Sariya` : null,
-                              t.pole_ordered > 0 ? `₹${t.pole_ordered.toLocaleString('en-IN')} Pole` : null,
-                              t.tile_ordered > 0 ? `₹${t.tile_ordered.toLocaleString('en-IN')} Tiles` : null,
+                              t.pole_ordered > 0 ? `${t.pole_ordered} Poles` : null,
+                              t.tile_ordered > 0 ? `₹${t.tile_ordered.toLocaleString('en-IN')} Others` : null,
                             ].filter(Boolean).join(" • ") || `${t.bags_ordered || 0} Bags Cement`}
                           </span>
                         </div>
@@ -1240,8 +1252,8 @@ export default function DukandarOrderEntry() {
                                 {[
                                   o.bags_ordered > 0 ? `Cement: ${o.bags_ordered} Bags` : null,
                                   o.sariya_ordered > 0 ? `Sariya: ₹${o.sariya_ordered.toLocaleString('en-IN')}` : null,
-                                  o.pole_ordered > 0 ? `Pole: ₹${o.pole_ordered.toLocaleString('en-IN')}` : null,
-                                  o.tile_ordered > 0 ? `Tiles: ₹${o.tile_ordered.toLocaleString('en-IN')}` : null,
+                                  o.pole_ordered > 0 ? `Pole: ${o.pole_ordered} Pcs` : null,
+                                  o.tile_ordered > 0 ? `Others: ₹${o.tile_ordered.toLocaleString('en-IN')}` : null,
                                 ].filter(Boolean).join(" • ") || `Cement: ${o.bags_ordered || 0} Bags`}
                               </span>
                               <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${o.status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
