@@ -501,36 +501,36 @@ export default function DukandarOrderEntry() {
         <div className="flex p-1 bg-slate-200/70 rounded-2xl w-full mb-5 shadow-inner border border-slate-200/60">
           <button
             onClick={() => setActiveTab('order')}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'order'
                 ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Plus className="w-4 h-4 shrink-0" />
-            <span>नया ऑर्डर (Order)</span>
+            <span>New Order</span>
           </button>
           <button
             onClick={() => setActiveTab('transactions')}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'transactions'
                 ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Clock className="w-4 h-4 shrink-0" />
-            <span>इतिहास (History)</span>
+            <span>History</span>
           </button>
           <button
             onClick={() => setActiveTab('customer_history')}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'customer_history'
                 ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Users className="w-4 h-4 shrink-0" />
-            <span>पासबुक (Passbook)</span>
+            <span>Passbook</span>
           </button>
         </div>
 
@@ -593,7 +593,7 @@ export default function DukandarOrderEntry() {
                       <Store className="w-4 h-4" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-sm">दुकानदार / फर्म (Shopkeeper Profile)</h3>
+                      <h3 className="font-bold text-slate-900 text-sm">Firm Name</h3>
                       <p className="text-[11px] text-slate-500">Select firm or register a new customer</p>
                     </div>
                   </div>
@@ -603,11 +603,11 @@ export default function DukandarOrderEntry() {
                     <button
                       type="button"
                       onClick={() => setIsNewCustomer(false)}
-                      className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                         !isNewCustomer ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      मौजूदा (Search)
+                      Search
                     </button>
                     <button
                       type="button"
@@ -616,11 +616,11 @@ export default function DukandarOrderEntry() {
                         setSelectedDukandar("");
                         setSelectedDukandarName("");
                       }}
-                      className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                         isNewCustomer ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      + नया जोड़ें
+                      + Add New
                     </button>
                   </div>
                 </div>
@@ -645,7 +645,7 @@ export default function DukandarOrderEntry() {
                               <span>📞 {dukandars.find(d => d.id === selectedDukandar)?.phone}</span>
                               <span>•</span>
                               <span className="bg-white/80 px-2 py-0.5 rounded-md border border-blue-200/80 text-slate-700">
-                                कुल पॉइंट्स: <strong>{dukandars.find(d => d.id === selectedDukandar)?.total_points || 0} ★</strong>
+                                Total Points: <strong>{dukandars.find(d => d.id === selectedDukandar)?.total_points || 0} ★</strong>
                               </span>
                             </p>
                           </div>
@@ -659,7 +659,7 @@ export default function DukandarOrderEntry() {
                           }}
                           className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-white px-3 py-2 rounded-xl border border-blue-200 shadow-sm active:scale-95 transition-all shrink-0 cursor-pointer"
                         >
-                          बदलें (Change)
+                          Change
                         </button>
                       </div>
                     ) : (
@@ -668,7 +668,7 @@ export default function DukandarOrderEntry() {
                           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                           <input
                             type="text"
-                            placeholder="दुकानदार का नाम या मोबाइल नंबर खोजें..."
+                            placeholder="Search firm name or mobile number..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-9 pr-9 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all font-medium"
@@ -689,7 +689,7 @@ export default function DukandarOrderEntry() {
                         <div className="mt-2.5 max-h-60 overflow-y-auto border border-slate-200 rounded-2xl bg-white shadow-lg divide-y divide-slate-100">
                           {(searchQuery ? filteredDukandars : dukandars.slice(0, 5)).length === 0 ? (
                             <div className="p-4 text-center text-xs text-slate-500">
-                              कोई दुकानदार नहीं मिला। ऊपर <strong>"+ नया जोड़ें"</strong> पर क्लिक करें।
+                              No firm found. Click <strong>"+ Add New"</strong> above to register.
                             </div>
                           ) : (
                             (searchQuery ? filteredDukandars : dukandars.slice(0, 5)).map((d) => (
@@ -725,7 +725,7 @@ export default function DukandarOrderEntry() {
                 ) : (
                   <div className="space-y-3 pt-1 animate-in fade-in duration-150">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">दुकानदार / फर्म का नाम (Firm Name) *</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Firm Name *</label>
                       <input
                         type="text"
                         placeholder="e.g. Agarwal Traders, Tonk"
@@ -735,7 +735,7 @@ export default function DukandarOrderEntry() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">मोबाइल नंबर (10-Digit Mobile) *</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Mobile Number (10 Digits) *</label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
                           +91
@@ -762,23 +762,20 @@ export default function DukandarOrderEntry() {
                       <Package className="w-4 h-4" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-sm">ऑर्डर सामग्री (Order Quantities)</h3>
-                      <p className="text-[11px] text-slate-500">सीमेंट: 1 बैग = 1 Pt • सरिया/पोल/टाइल्स: ₹1,000 = 1 Pt</p>
+                      <h3 className="font-bold text-slate-900 text-sm">Order Items</h3>
+                      <p className="text-[11px] text-slate-500">Cement: 1 Bag = 1 Pt • Sariya/Pole/Tiles: ₹1,000 = 1 Pt</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
-                    स्वतंत्र गणना (Independent)
-                  </span>
                 </div>
 
                 {/* Cement Bags */}
                 <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70">
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">
-                      सीमेंट बोरी (Cement Bags)
+                      Cement (Bags)
                     </label>
                     <span className="text-[11px] text-blue-700 font-bold bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                      1 बैग = 1 पॉइंट
+                      1 Bag = 1 Point
                     </span>
                   </div>
 
@@ -831,7 +828,7 @@ export default function DukandarOrderEntry() {
                 <div className="pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                      अन्य सामग्री (₹1,000 खरीद = 1 पॉइंट प्रत्येक)
+                      Other Materials (₹1,000 = 1 Point)
                     </p>
                     <span className="text-[10px] text-slate-400 font-semibold">₹1,000 = 1 pt</span>
                   </div>
@@ -840,7 +837,7 @@ export default function DukandarOrderEntry() {
                     {/* Sariya */}
                     <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        सरिया बिल (Sariya ₹)
+                        Sariya (₹)
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
@@ -867,7 +864,7 @@ export default function DukandarOrderEntry() {
                     {/* Pole */}
                     <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        पोल बिल (Pole ₹)
+                        Pole (₹)
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
@@ -894,7 +891,7 @@ export default function DukandarOrderEntry() {
                     {/* Tiles */}
                     <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        टाइल्स बिल (Tiles ₹)
+                        Tiles (₹)
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
@@ -928,7 +925,7 @@ export default function DukandarOrderEntry() {
                         ★
                       </div>
                       <div>
-                        <p className="text-[11px] font-bold text-blue-100 uppercase tracking-wider">अनुमानित कुल पॉइंट्स (Points Preview)</p>
+                        <p className="text-[11px] font-bold text-blue-100 uppercase tracking-wider">Points Preview</p>
                         <p className="text-2xl font-black leading-tight text-white">
                           +{((Number(bags) || 0) + Math.floor((Number(sariya) || 0) / 1000) + Math.floor((Number(pole) || 0) / 1000) + Math.floor((Number(tile) || 0) / 1000))} Points
                         </p>
@@ -963,17 +960,17 @@ export default function DukandarOrderEntry() {
                 {submitting ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>ऑर्डर सबमिट हो रहा है... (Submitting...)</span>
+                    <span>Submitting Order...</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="w-5 h-5" />
                     <span>
                       {!selectedDukandar && !isNewCustomer 
-                        ? "दुकानदार चुनें (Select Dukandar to Submit)" 
+                        ? "Select Dukandar" 
                         : ((Number(bags) || 0) <= 0 && (Number(sariya) || 0) <= 0 && (Number(pole) || 0) <= 0 && (Number(tile) || 0) <= 0)
-                        ? "सामग्री दर्ज करें (Enter Items to Submit)"
-                        : "✓ ऑर्डर सबमिट करें (Confirm & Submit Order)"
+                        ? "Enter Items"
+                        : "✓ Confirm & Submit Order"
                       }
                     </span>
                   </>
