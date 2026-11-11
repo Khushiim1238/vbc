@@ -795,30 +795,6 @@ export default function DukandarOrderEntry() {
                     </span>
                   </div>
 
-                  {/* Quick Add Buttons for Cement */}
-                  <div className="flex items-center gap-2 mt-2.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Quick Add:</span>
-                    {[10, 25, 50, 100].map((num) => (
-                      <button
-                        key={num}
-                        type="button"
-                        onClick={() => setBags((prev) => (Number(prev) || 0) + num)}
-                        className="text-xs font-bold bg-white hover:bg-blue-50 hover:text-blue-700 text-slate-600 px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs active:scale-95 transition-all cursor-pointer"
-                      >
-                        +{num}
-                      </button>
-                    ))}
-                    {Number(bags) > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setBags("")}
-                        className="text-[11px] font-bold text-rose-600 hover:text-rose-800 ml-auto cursor-pointer"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-
                   {Number(bags) > 0 && (
                     <p className="text-xs text-blue-700 font-bold mt-2">
                       ✓ {bags} Bags → +{bags} Points
