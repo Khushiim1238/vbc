@@ -165,15 +165,18 @@ export default function DukandarAdmin() {
     const itemsList: string[] = [];
     if (w.bags > 0) itemsList.push(`सीमेंट: ${w.bags} बैग`);
     if ((w.sariya || 0) > 0) itemsList.push(`सरिया: ₹${(w.sariya || 0).toLocaleString('en-IN')}`);
-    if ((w.pole || 0) > 0) itemsList.push(`पोल: ₹${(w.pole || 0).toLocaleString('en-IN')}`);
-    if ((w.tile || 0) > 0) itemsList.push(`टाइल्स: ₹${(w.tile || 0).toLocaleString('en-IN')}`);
+    if ((w.pole || 0) > 0) itemsList.push(`पोल: ${w.pole} नग`);
+    if ((w.tile || 0) > 0) itemsList.push(`अन्य सामग्री (टाइल्स, कवर ब्लॉक): ₹${(w.tile || 0).toLocaleString('en-IN')}`);
 
     const itemsText = itemsList.length > 0 ? itemsList.join(", ") : `सीमेंट: ${w.bags || 0} बैग`;
 
     let msg = `नमस्ते ${w.name} जी! 🙏\n\n`;
     msg += `✅ *ऑर्डर स्वीकृत:* ${itemsText}\n`;
     msg += `वर्धमान बिल्डिंग सल्यूशन को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
-    msg += `⭐ आपके मिले हैं: *+${w.pointsAwarded} पॉइंट्स*\n`;
+    if (w.couponNumber) {
+      msg += `🎟️ कूपन नं: *#${w.couponNumber}*\n`;
+    }
+    msg += `⭐ आपको मिले हैं: *+${w.pointsAwarded} पॉइंट्स*\n`;
     msg += `🏆 आपका कुल पॉइंट्स है: *${w.totalPoints} पॉइंट्स*\n\n`;
     msg += `हार्दिक बधाई व शुभकामनाएं\n— वर्धमान ग्रुप, टोंक`;
 

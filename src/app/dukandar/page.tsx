@@ -272,7 +272,10 @@ export default function DukandarOrderEntry() {
     msg += `वर्धमान बिल्डिंग सल्यूशन को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
 
     if (order.status === 'approved') {
-      msg += `⭐ आपके मिले हैं: *+${order.points_awarded} पॉइंट्स*\n`;
+      if (order.coupon_number) {
+        msg += `🎟️ कूपन नं: *#${order.coupon_number}*\n`;
+      }
+      msg += `⭐ आपको मिले हैं: *+${order.points_awarded} पॉइंट्स*\n`;
       msg += `🏆 आपका कुल पॉइंट्स है: *${dukandar.total_points} पॉइंट्स*\n\n`;
     } else if (order.status === 'pending') {
       msg += `⏳ *स्थिति:* आपका ऑर्डर वेरिफिकेशन के लिए प्रोसेस में है।\n⭐ संभावित पॉइंट्स: *${order.points_awarded} पॉइंट्स*\n\n`;
