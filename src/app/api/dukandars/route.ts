@@ -10,10 +10,7 @@ export async function GET() {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('dukandars')
-      .select('*')
-      .order('name', { ascending: true });
+    const { data, error } = await supabase.from('dukandars').select('*').order('name', { ascending: true });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -63,4 +60,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to create Dukandar' }, { status: 500 });
   }
 }
-

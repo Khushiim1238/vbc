@@ -4,8 +4,8 @@ import { cookies } from 'next/headers';
 
 export async function GET() {
   const cookieStore = await cookies();
-  const role = cookieStore.get('vbc_role')?.value;
-  if (!role) {
+  const userRole = cookieStore.get('vbc_role')?.value;
+  if (!userRole) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -27,7 +27,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
-  const role = cookieStore.get('vbc_role')?.value || 'staff';
+  const callerRole = cookieStore.get('vbc_role')?.value || 'staff';
 
   try {
     const body = await request.json();
@@ -46,9 +46,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Please enter quantity or amount for at least one item' }, { status: 400 });
     }
 
-    const staffName = (typeof entered_by === 'string' && entered_by.trim()) ? entered_by.trim() : (role === 'admin' ? 'Admin' : 'Staff');
+    const staffName = (typeof entered_by === 'string' && entered_by.trim()) ? entered_by.trim() : (callerRole === 'admin' ? 'Admin' : 'Staff');
 
-    // Rules:
+    // Point Calculation:
     // Cement: 1 bag = 1 point
     // Sariya, Pole, Tile: 1 point per ₹1,000 purchase (each calculated independently)
     const points_awarded =
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: dukandarError?.message || 'Dukandar record not found' }, { status: 404 });
     }
 
-    // 2. Insert into dukandar_orders (Default status is 'pending')
+    // 2. Insert into dukandar_orders
     const { data: order, error: orderError } = await supabase
       .from('dukandar_orders')
       .insert([
@@ -101,7 +101,6 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error('Unhandled Dukandar Order Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Internal Server Error' }, { status: 500 });
   }
 }
-
