@@ -263,20 +263,18 @@ export default function DukandarOrderEntry() {
     if (order.bags_ordered > 0) itemsList.push(`सीमेंट: ${order.bags_ordered} बैग`);
     if (order.sariya_ordered > 0) itemsList.push(`सरिया: ₹${order.sariya_ordered.toLocaleString('en-IN')}`);
     if (order.pole_ordered > 0) itemsList.push(`पोल: ${order.pole_ordered} नग`);
-    if (order.tile_ordered > 0) itemsList.push(`अन्य (टाइल्स, कवर ब्लॉक): ₹${order.tile_ordered.toLocaleString('en-IN')}`);
+    if (order.tile_ordered > 0) itemsList.push(`अन्य सामग्री (टाइल्स, कवर ब्लॉक): ₹${order.tile_ordered.toLocaleString('en-IN')}`);
 
     const itemsText = itemsList.length > 0 ? itemsList.join(", ") : `सीमेंट: ${order.bags_ordered || 0} बैग`;
 
     let msg = `नमस्ते ${dukandar.name} जी! 🙏\n\n`;
     msg += `✅ *ऑर्डर स्वीकृत:* ${itemsText}\n`;
-    msg += `वर्धमान बिल्डिंग सल्यूशन को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
+    msg += `वर्धमान बिल्डिंग सल्यूशन को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n\n`;
 
     if (order.status === 'approved') {
-      if (order.coupon_number) {
-        msg += `🎟️ कूपन नं: *#${order.coupon_number}*\n`;
-      }
       msg += `⭐ आपको मिले हैं: *+${order.points_awarded} पॉइंट्स*\n`;
       msg += `🏆 आपका कुल पॉइंट्स है: *${dukandar.total_points} पॉइंट्स*\n\n`;
+      msg += `दीपावली धमाका स्कीम में  मोटरसाइकिल , ए सी,फ्रिज ,कूलर आदि आकर्षक इनाम जीतने के लिए अपने प्वाइंट बढ़ाते रहिए!\n\n`;
     } else if (order.status === 'pending') {
       msg += `⏳ *स्थिति:* आपका ऑर्डर वेरिफिकेशन के लिए प्रोसेस में है।\n⭐ संभावित पॉइंट्स: *${order.points_awarded} पॉइंट्स*\n\n`;
     }
@@ -1085,10 +1083,10 @@ export default function DukandarOrderEntry() {
                         </div>
                         <div className="bg-blue-50 border border-blue-200 px-3 py-1 rounded-xl text-center">
                           <p className="text-[10px] font-bold text-blue-700 uppercase">
-                            {t.coupon_number ? `Coupon #${t.coupon_number}` : 'Points'}
+                            Points
                           </p>
                           <p className="text-sm font-black text-blue-600">
-                            +{t.points_awarded} {t.coupon_number ? 'pts' : ''}
+                            +{t.points_awarded} pts
                           </p>
                         </div>
                       </div>
@@ -1292,7 +1290,7 @@ export default function DukandarOrderEntry() {
                           <div className="flex items-center gap-2 shrink-0">
                             {o.points_awarded > 0 && (
                               <span className="font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-200">
-                                {o.coupon_number ? `🎟️ #${o.coupon_number} (+${o.points_awarded} pts)` : `+${o.points_awarded} ★`}
+                                +{o.points_awarded} pts
                               </span>
                             )}
                             <button

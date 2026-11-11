@@ -172,12 +172,10 @@ export default function DukandarAdmin() {
 
     let msg = `नमस्ते ${w.name} जी! 🙏\n\n`;
     msg += `✅ *ऑर्डर स्वीकृत:* ${itemsText}\n`;
-    msg += `वर्धमान बिल्डिंग सल्यूशन को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n`;
-    if (w.couponNumber) {
-      msg += `🎟️ कूपन नं: *#${w.couponNumber}*\n`;
-    }
+    msg += `वर्धमान बिल्डिंग सल्यूशन को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n\n`;
     msg += `⭐ आपको मिले हैं: *+${w.pointsAwarded} पॉइंट्स*\n`;
     msg += `🏆 आपका कुल पॉइंट्स है: *${w.totalPoints} पॉइंट्स*\n\n`;
+    msg += `दीपावली धमाका स्कीम में  मोटरसाइकिल , ए सी,फ्रिज ,कूलर आदि आकर्षक इनाम जीतने के लिए अपने प्वाइंट बढ़ाते रहिए!\n\n`;
     msg += `हार्दिक बधाई व शुभकामनाएं\n— वर्धमान ग्रुप, टोंक`;
 
     let phone = w.phone.replace(/\D/g, "");
@@ -762,15 +760,9 @@ export default function DukandarAdmin() {
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        {o.coupon_number ? (
-                          <span className="font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 text-xs">
-                            🎟️ #{o.coupon_number} ({o.points_awarded} pts)
-                          </span>
-                        ) : (
-                          <span className="font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 text-xs">
-                            +{o.points_awarded} Points
-                          </span>
-                        )}
+                        <span className="font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 text-xs">
+                          +{o.points_awarded} Points
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -972,7 +964,7 @@ export default function DukandarAdmin() {
                           {h.status === "approved" ? "Approved" : "Pending"}
                         </span>
                         <span className="font-bold text-blue-600 bg-white px-2 py-0.5 rounded border border-slate-200">
-                          {h.coupon_number ? `🎟️ #${h.coupon_number} (+${h.points_awarded} pts)` : `+${h.points_awarded} ★`}
+                          +{h.points_awarded} Points
                         </span>
                       </div>
                     </div>
@@ -1052,7 +1044,7 @@ export default function DukandarAdmin() {
                   <div>
                     <p className="font-bold text-slate-900">{w.name}</p>
                     <p className="text-slate-400">
-                      {w.couponNumber ? `🎟️ Coupon #${w.couponNumber} (${w.pointsAwarded} pts)` : `+${w.pointsAwarded} Points`} • Total: {w.totalPoints}
+                      +{w.pointsAwarded} Points • Total: {w.totalPoints}
                     </p>
                   </div>
                   <button
