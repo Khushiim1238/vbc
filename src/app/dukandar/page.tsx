@@ -263,7 +263,7 @@ export default function DukandarOrderEntry() {
     if (order.bags_ordered > 0) itemsList.push(`सीमेंट: ${order.bags_ordered} बैग`);
     if (order.sariya_ordered > 0) itemsList.push(`सरिया: ₹${order.sariya_ordered.toLocaleString('en-IN')}`);
     if (order.pole_ordered > 0) itemsList.push(`पोल: ${order.pole_ordered} नग`);
-    if (order.tile_ordered > 0) itemsList.push(`अन्य सामग्री (टाइल्स, कवर ब्लॉक): ₹${order.tile_ordered.toLocaleString('en-IN')}`);
+    if (order.tile_ordered > 0) itemsList.push(`अन्य सामग्री (टाइल्स, कवर ब्लॉक, सीमेंट ब्लॉक): ₹${order.tile_ordered.toLocaleString('en-IN')}`);
 
     const itemsText = itemsList.length > 0 ? itemsList.join(", ") : `सीमेंट: ${order.bags_ordered || 0} बैग`;
 
@@ -375,7 +375,7 @@ export default function DukandarOrderEntry() {
     // Cement: 1 bag = 1 pt
     // Sariya: 1 pt per ₹1,000 purchase
     // Pole: 1 pole = 1 pt
-    // Others (Tile, Cover Block): 1 pt per ₹100 purchase
+    // Others (Tile, Cover Block, Cement Block): 1 pt per ₹100 purchase
     const calculatedPoints =
       submittedBags +
       Math.floor(submittedSariya / 1000) +
@@ -606,7 +606,7 @@ export default function DukandarOrderEntry() {
                         success.bags > 0 ? `${success.bags} Bags Cement` : null,
                         success.sariya > 0 ? `₹${success.sariya.toLocaleString('en-IN')} Sariya` : null,
                         success.pole > 0 ? `${success.pole} Poles` : null,
-                        success.tile > 0 ? `₹${success.tile.toLocaleString('en-IN')} Others (Tile/Cover Block)` : null,
+                        success.tile > 0 ? `₹${success.tile.toLocaleString('en-IN')} Others (Tile/Cover Block/Cement Block)` : null,
                       ].filter(Boolean).join(" • ")}
                     </p>
                   </div>
@@ -916,11 +916,11 @@ export default function DukandarOrderEntry() {
                       )}
                     </div>
 
-                    {/* Others (Tile, Cover Block) */}
+                    {/* Others (Tile, Cover Block, Cement Block) */}
                     <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-bold text-slate-700 truncate" title="Others (Tile, Cover Block)">
-                          Others (Tile, Cover Block)
+                        <label className="block text-xs font-bold text-slate-700 truncate" title="Others (Tile, Cover Block, Cement Block)">
+                          Others (Tile, Cover Block, Cement Block)
                         </label>
                         <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
                           ₹100 = 1 Pt

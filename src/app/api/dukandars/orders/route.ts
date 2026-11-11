@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     // Cement: 1 bag = 1 point
     // Sariya: 1 point per ₹1,000 purchase
     // Pole: 1 point for 1 pole (1 pole = 1 point)
-    // Others (Tile, Cover Block): 1 point for ₹100 purchase
+    // Others (Tile, Cover Block, Cement Block): 1 point for ₹100 purchase
     const points_awarded =
       bags +
       Math.floor(sariya / 1000) +

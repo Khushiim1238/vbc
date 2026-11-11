@@ -166,7 +166,7 @@ export default function DukandarAdmin() {
     if (w.bags > 0) itemsList.push(`सीमेंट: ${w.bags} बैग`);
     if ((w.sariya || 0) > 0) itemsList.push(`सरिया: ₹${(w.sariya || 0).toLocaleString('en-IN')}`);
     if ((w.pole || 0) > 0) itemsList.push(`पोल: ${w.pole} नग`);
-    if ((w.tile || 0) > 0) itemsList.push(`अन्य सामग्री (टाइल्स, कवर ब्लॉक): ₹${(w.tile || 0).toLocaleString('en-IN')}`);
+    if ((w.tile || 0) > 0) itemsList.push(`अन्य सामग्री (टाइल्स, कवर ब्लॉक, सीमेंट ब्लॉक): ₹${(w.tile || 0).toLocaleString('en-IN')}`);
 
     const itemsText = itemsList.length > 0 ? itemsList.join(", ") : `सीमेंट: ${w.bags || 0} बैग`;
 
