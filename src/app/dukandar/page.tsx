@@ -140,29 +140,14 @@ export default function DukandarOrderEntry() {
   const [customerTransactions, setCustomerTransactions] = useState<DukandarTransaction[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Resolve staff name reliably across sessions, localStorage, and legacy keys
+  // Resolve Dukandar staff name reliably (isolated from Karigar portal)
   const getStoredStaffName = (fallbackRole?: string) => {
     if (typeof window === 'undefined') return fallbackRole === 'admin' ? 'Admin' : 'Staff';
-    const direct = localStorage.getItem("vbc_staff_name");
+    const direct = localStorage.getItem("vbc_dukandar_staff_name");
     if (direct && direct.trim() && direct.trim().toLowerCase() !== 'staff') {
       return direct.trim();
     }
-    try {
-      const dev = localStorage.getItem("vardhman_device");
-      if (dev) {
-        const parsed = JSON.parse(dev);
-        if (parsed?.name && parsed.name.trim() && parsed.name.trim().toLowerCase() !== 'staff') {
-          localStorage.setItem("vbc_staff_name", parsed.name.trim());
-          return parsed.name.trim();
-        }
-      }
-    } catch { }
-    const legacy = localStorage.getItem("staff_name") || localStorage.getItem("user_name");
-    if (legacy && legacy.trim() && legacy.trim().toLowerCase() !== 'staff') {
-      localStorage.setItem("vbc_staff_name", legacy.trim());
-      return legacy.trim();
-    }
-    return direct && direct.trim() ? direct.trim() : (fallbackRole === 'admin' ? 'Admin' : 'Staff');
+    return fallbackRole === 'admin' ? 'Admin' : 'Staff';
   };
 
   const handleStaffBadgeClick = () => {
@@ -170,14 +155,25 @@ export default function DukandarOrderEntry() {
     const newName = window.prompt("Enter your staff name:", current);
     if (newName !== null && newName.trim() !== '') {
       const trimmed = newName.trim();
-      localStorage.setItem("vbc_staff_name", trimmed);
+      localStorage.setItem("vbc_dukandar_staff_name", trimmed);
       setEnteredBy(trimmed);
       setStaffNameInput(trimmed);
       toast.success(`Staff name set to ${trimmed}`);
     }
   };
 
-  // Check existing session
+  const handleLogout = async () => {
+    if (!window.confirm("Are you sure you want to lock the portal?")) return;
+    try {
+      await fetch('/api/auth/logout?portal=dukandar', { method: 'POST' });
+    } catch {}
+    localStorage.removeItem("vbc_dukandar_auth_time");
+    setIsAuthenticated(false);
+    setPasswordInput("");
+    toast.success("Portal locked");
+  };
+
+  // Check existing session (Valid for 24 Hours)
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -185,7 +181,18 @@ export default function DukandarOrderEntry() {
         if (savedName && savedName !== 'Staff' && savedName !== 'Admin') {
           setStaffNameInput(savedName);
         }
-        const res = await fetch('/api/auth/me');
+
+        // Check 24-hour expiration on client
+        const authTimestamp = localStorage.getItem("vbc_dukandar_auth_time");
+        const is24HrValid = authTimestamp && (Date.now() - Number(authTimestamp)) < 24 * 60 * 60 * 1000;
+
+        if (!is24HrValid) {
+          setIsAuthenticated(false);
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch('/api/auth/me?portal=dukandar');
         const data = await res.json();
         if (data.authenticated) {
           setIsAuthenticated(true);
@@ -193,10 +200,12 @@ export default function DukandarOrderEntry() {
           setEnteredBy(activeRoleName);
           fetchDukandars();
         } else {
+          setIsAuthenticated(false);
           setLoading(false);
         }
       } catch (err) {
         console.error("Auth check failed", err);
+        setIsAuthenticated(false);
         setLoading(false);
       }
     };
@@ -217,12 +226,13 @@ export default function DukandarOrderEntry() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: passwordInput })
+        body: JSON.stringify({ pin: passwordInput, portal: 'dukandar' })
       });
       const data = await res.json();
       if (res.ok) {
         const trimmedName = staffNameInput.trim();
-        localStorage.setItem("vbc_staff_name", trimmedName);
+        localStorage.setItem("vbc_dukandar_staff_name", trimmedName);
+        localStorage.setItem("vbc_dukandar_auth_time", Date.now().toString());
         setEnteredBy(trimmedName);
         setIsAuthenticated(true);
         fetchDukandars();
@@ -624,6 +634,14 @@ export default function DukandarOrderEntry() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span>{enteredBy}</span>
               <Edit2 className="w-2.5 h-2.5 opacity-60 ml-0.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Lock Portal (Logout)"
+              className="p-1.5 text-slate-400 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 rounded-full transition-all cursor-pointer shadow-2xs active:scale-95"
+            >
+              <Lock className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

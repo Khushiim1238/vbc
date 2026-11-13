@@ -119,15 +119,29 @@ export default function OrderEntry() {
         if (savedName && savedName !== 'Staff' && savedName !== 'Admin') {
           setStaffNameInput(savedName);
         }
-        const res = await fetch('/api/auth/me');
+
+        // 24-hour validity check
+        const authTimestamp = localStorage.getItem("vbc_karigar_auth_time");
+        const is24HrValid = authTimestamp && (Date.now() - Number(authTimestamp)) < 24 * 60 * 60 * 1000;
+
+        if (!is24HrValid) {
+          setIsAuthenticated(false);
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch('/api/auth/me?portal=karigar');
         const data = await res.json();
         if (data.authenticated) {
           setIsAuthenticated(true);
           const activeRoleName = getStoredStaffName(data.role);
           setEnteredBy(activeRoleName);
+        } else {
+          setIsAuthenticated(false);
         }
       } catch (err) {
         console.error("Auth check failed", err);
+        setIsAuthenticated(false);
       } finally {
         setLoading(false);
       }
@@ -193,6 +207,7 @@ export default function OrderEntry() {
       if (res.ok) {
         const trimmedName = staffNameInput.trim();
         localStorage.setItem("vbc_staff_name", trimmedName);
+        localStorage.setItem("vbc_karigar_auth_time", Date.now().toString());
         setEnteredBy(trimmedName);
         setIsAuthenticated(true);
         fetchKarigars();

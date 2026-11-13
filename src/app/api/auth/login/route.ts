@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { pin } = await request.json();
+    const { pin, portal } = await request.json();
     
     let role = '';
 
@@ -19,15 +19,38 @@ export async function POST(request: Request) {
     }
 
     const cookieStore = await cookies();
-    cookieStore.set('vbc_role', role, { 
-      httpOnly: true, 
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30 // 30 days
-    });
+    const cookieAge = 60 * 60 * 24; // 24 Hours
 
-    return NextResponse.json({ success: true, role });
+    if (portal === 'dukandar') {
+      // Dedicated Dukandar cookie (valid for 24 hours, isolated from Karigar)
+      cookieStore.set('vbc_dukandar_role', role, { 
+        httpOnly: true, 
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: cookieAge
+      });
+      if (role === 'admin') {
+        cookieStore.set('vbc_role', 'admin', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: cookieAge
+        });
+      }
+    } else {
+      // Karigar / General portal cookie (valid for 24 hours)
+      cookieStore.set('vbc_role', role, { 
+        httpOnly: true, 
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: cookieAge
+      });
+    }
+
+    return NextResponse.json({ success: true, role, portal: portal || 'karigar' });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
