@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import {
   Search, Plus, User, Package, Trophy, Lock, Users,
   Loader2, Phone, MessageCircle, Clock, CheckCircle2,
-  Store, X, RefreshCw, ChevronRight, Edit2
+  Store, X, RefreshCw, ChevronRight, Edit2, Download
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -69,6 +69,70 @@ export default function DukandarOrderEntry() {
   const [tile, setTile] = useState<number | "">("");
   const [enteredBy, setEnteredBy] = useState("Staff");
   const [staffNameInput, setStaffNameInput] = useState("");
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isRunningStandalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone === true;
+      setIsStandalone(isRunningStandalone);
+
+      const handleBeforeInstallPrompt = (e: any) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+      };
+
+      const handleAppInstalled = () => {
+        setIsStandalone(true);
+        setDeferredPrompt(null);
+        toast.success("Dukandar Web App installed successfully!");
+      };
+
+      window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.addEventListener("appinstalled", handleAppInstalled);
+
+      return () => {
+        window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+        window.removeEventListener("appinstalled", handleAppInstalled);
+      };
+    }
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === "accepted") {
+          setDeferredPrompt(null);
+          setIsStandalone(true);
+          toast.success("App installation started!");
+        }
+      } catch (err) {
+        console.error("Install prompt error:", err);
+      }
+    } else {
+      const isIOS =
+        typeof navigator !== "undefined" &&
+        /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+        !(window as any).MSStream;
+      if (isIOS) {
+        toast.info(
+          "iPhone पर इंस्टॉल करने के लिए: Safari में नीचे Share (⎋ / ⎙) बटन दबाएं और 'Add to Home Screen' चुनें।",
+          { duration: 6000 }
+        );
+      } else {
+        toast.info(
+          "ब्राउज़र के ऊपर दाएँ 3 डॉट्स (⋮) मेन्यू पर टैप करके 'Install app' या 'Add to Home screen' चुनें।",
+          { duration: 6000 }
+        );
+      }
+    }
+  };
 
   // Customer History Tab State
   const [historySearchQuery, setHistorySearchQuery] = useState("");
@@ -496,6 +560,18 @@ export default function DukandarOrderEntry() {
             >
               Unlock Portal
             </button>
+            {!isStandalone && (
+              <div className="pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleInstallApp}
+                  className="w-full py-2.5 px-3 bg-blue-50/70 hover:bg-blue-100 text-blue-700 border border-blue-200/80 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                >
+                  <Download className="w-4 h-4 text-blue-600" />
+                  <span>Download / Install App</span>
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>
@@ -526,8 +602,19 @@ export default function DukandarOrderEntry() {
             </div>
           </div>
 
-          {/* Staff Badge */}
+          {/* Header Actions */}
           <div className="flex items-center gap-2">
+            {!isStandalone && (
+              <button
+                type="button"
+                onClick={handleInstallApp}
+                title="Download as Web App on your phone"
+                className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-2.5 sm:px-3 py-1.5 rounded-full font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Install App</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={handleStaffBadgeClick}
