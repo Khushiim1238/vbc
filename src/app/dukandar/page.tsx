@@ -49,6 +49,7 @@ export default function DukandarOrderEntry() {
   // Success state
   const [success, setSuccess] = useState<{
     customerName: string;
+    customerPhone?: string;
     bags: number;
     sariya: number;
     pole: number;
@@ -56,6 +57,7 @@ export default function DukandarOrderEntry() {
     bindingWire: number;
     tile: number;
     points: number;
+    totalPoints?: number;
   } | null>(null);
 
   // Form State
@@ -353,13 +355,13 @@ export default function DukandarOrderEntry() {
     msg += `✅ *ऑर्डर स्वीकृत:* ${itemsText}\n`;
     msg += `वर्धमान बिल्डिंग सल्यूशन को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n\n`;
 
-    if (order.status === 'approved') {
-      msg += `⭐ आपको मिले हैं: *+${order.points_awarded} पॉइंट्स*\n`;
-      msg += `🏆 आपका कुल पॉइंट्स है: *${dukandar.total_points} पॉइंट्स*\n\n`;
-      msg += `दीपावली धमाका स्कीम में  मोटरसाइकिल , ए सी,फ्रिज ,कूलर आदि आकर्षक इनाम जीतने के लिए अपने प्वाइंट बढ़ाते रहिए!\n\n`;
-    } else if (order.status === 'pending') {
-      msg += `⏳ *स्थिति:* आपका ऑर्डर वेरिफिकेशन के लिए प्रोसेस में है।\n⭐ संभावित पॉइंट्स: *${order.points_awarded} पॉइंट्स*\n\n`;
-    }
+    const totalPts = order.status === 'approved' 
+      ? dukandar.total_points 
+      : ((dukandar.total_points || 0) + (order.points_awarded || 0));
+
+    msg += `⭐ आपको मिले हैं: *+${order.points_awarded} पॉइंट्स*\n`;
+    msg += `🏆 आपका कुल पॉइंट्स है: *${totalPts} पॉइंट्स*\n\n`;
+    msg += `दीपावली धमाका स्कीम में  मोटरसाइकिल , ए सी,फ्रिज ,कूलर आदि आकर्षक इनाम जीतने के लिए अपने प्वाइंट बढ़ाते रहिए!\n\n`;
 
     msg += `हार्दिक बधाई व शुभकामनाएं\n— वर्धमान ग्रुप, टोंक`;
 
@@ -495,15 +497,21 @@ export default function DukandarOrderEntry() {
 
       const data = await res.json();
       if (res.ok && data.success) {
+        const foundPhone = dukandars.find(d => d.id === targetDukandarId)?.phone || newDukandarPhone;
+        const awardedPts = data.order?.points_awarded ?? calculatedPoints;
+        const totalPts = data.new_total ?? awardedPts;
+
         setSuccess({
           customerName: targetCustomerName,
+          customerPhone: foundPhone ? foundPhone.replace(/\D/g, '') : '',
           bags: submittedBags,
           sariya: submittedSariya,
           pole: submittedPole,
           coverBlock: submittedCoverBlock,
           bindingWire: submittedBindingWire,
           tile: submittedTile,
-          points: data.order?.points_awarded ?? calculatedPoints,
+          points: awardedPts,
+          totalPoints: totalPts,
         });
 
         toast.success("✓ ऑर्डर सफलतापूर्वक दर्ज हुआ! (Order Submitted)");
@@ -728,12 +736,17 @@ export default function DukandarOrderEntry() {
                     Order for <span className="font-bold text-slate-900">{success.customerName}</span> has been submitted.
                   </p>
 
-                  <div className="bg-blue-50 w-full rounded-2xl p-4 mb-5 border border-blue-200/80">
+                  <div className="bg-blue-50 w-full rounded-2xl p-4 mb-4 border border-blue-200/80">
                     <p className="text-xs text-blue-800 font-bold uppercase tracking-wider mb-1">Points Allotted</p>
                     <p className="text-3xl font-black text-blue-600 tracking-wider">
                       +{success.points} Points
                     </p>
-                    <p className="text-[11px] text-slate-500 mt-1">
+                    {success.totalPoints !== undefined && (
+                      <p className="text-xs font-bold text-slate-700 mt-1">
+                        कुल पॉइंट्स (Total Points): <span className="text-blue-700 font-black">{success.totalPoints} Points</span>
+                      </p>
+                    )}
+                    <p className="text-[11px] text-slate-500 mt-1.5">
                       {[
                         success.bags > 0 ? `${success.bags} Bags Cement` : null,
                         success.sariya > 0 ? `₹${success.sariya.toLocaleString('en-IN')} Sariya` : null,
@@ -745,13 +758,45 @@ export default function DukandarOrderEntry() {
                     </p>
                   </div>
 
-                  <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200/60 rounded-xl px-3 py-2 mb-5 w-full">
-                    ⏳ Points will be credited upon Admin approval.
-                  </p>
+                  {/* Send WhatsApp Message Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const itemsList: string[] = [];
+                      if (success.bags > 0) itemsList.push(`सीमेंट: ${success.bags} बैग`);
+                      if (success.sariya > 0) itemsList.push(`सरिया: ₹${success.sariya.toLocaleString('en-IN')}`);
+                      if (success.pole > 0) itemsList.push(`पोल: ${success.pole} नग`);
+                      if (success.coverBlock > 0) itemsList.push(`कवर ब्लॉक: ₹${success.coverBlock.toLocaleString('en-IN')}`);
+                      if (success.bindingWire > 0) itemsList.push(`बाइंडिंग वायर: ₹${success.bindingWire.toLocaleString('en-IN')}`);
+                      if (success.tile > 0) itemsList.push(`अन्य सामग्री (टाइल्स, कवर ब्लॉक): ₹${success.tile.toLocaleString('en-IN')}`);
+
+                      const itemsText = itemsList.length > 0 ? itemsList.join(", ") : `सीमेंट: ${success.bags || 0} बैग`;
+
+                      let msg = `नमस्ते ${success.customerName} जी! 🙏\n\n`;
+                      msg += `✅ *ऑर्डर स्वीकृत:* ${itemsText}\n`;
+                      msg += `वर्धमान बिल्डिंग सल्यूशन को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n\n`;
+                      msg += `⭐ आपको मिले हैं: *+${success.points} पॉइंट्स*\n`;
+                      msg += `🏆 आपका कुल पॉइंट्स है: *${success.totalPoints ?? success.points} पॉइंट्स*\n\n`;
+                      msg += `दीपावली धमाका स्कीम में  मोटरसाइकिल , ए सी,फ्रिज ,कूलर आदि आकर्षक इनाम जीतने के लिए अपने प्वाइंट बढ़ाते रहिए!हार्दिक बधाई व शुभकामनाएं\n`;
+                      msg += `— वर्धमान ग्रुप, टोंक`;
+
+                      let phone = success.customerPhone || '';
+                      if (phone.length === 10) phone = '91' + phone;
+
+                      const url = phone 
+                        ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+                        : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                      window.open(url, '_blank');
+                    }}
+                    className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/25 transition-all text-sm flex items-center justify-center gap-2 mb-2.5 cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 shrink-0" />
+                    <span>WhatsApp पर भेजें (Send on WhatsApp)</span>
+                  </button>
 
                   <button
                     onClick={() => setSuccess(null)}
-                    className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl font-bold shadow-lg shadow-blue-600/25 transition-all text-sm"
+                    className="w-full py-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 rounded-xl font-bold transition-all text-xs cursor-pointer"
                   >
                     Done (Log Next Order)
                   </button>

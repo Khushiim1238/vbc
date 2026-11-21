@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 
 export async function GET() {
   const cookieStore = await cookies();
-  const role = cookieStore.get('vbc_role')?.value;
+  const role = cookieStore.get('vbc_dukandar_role')?.value || cookieStore.get('vbc_role')?.value;
   if (!role) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -24,7 +24,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
-  const role = cookieStore.get('vbc_role')?.value || 'staff';
+  const role = cookieStore.get('vbc_dukandar_role')?.value || cookieStore.get('vbc_role')?.value || 'staff';
 
   try {
     const { name, phone } = await request.json();

@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 
 export async function GET() {
   const cookieStore = await cookies();
-  const userRole = cookieStore.get('vbc_role')?.value;
+  const userRole = cookieStore.get('vbc_dukandar_role')?.value || cookieStore.get('vbc_role')?.value;
   if (!userRole) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -27,7 +27,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
-  const callerRole = cookieStore.get('vbc_role')?.value || 'staff';
+  const callerRole = cookieStore.get('vbc_dukandar_role')?.value || cookieStore.get('vbc_role')?.value || 'staff';
 
   try {
     const body = await request.json();
@@ -121,13 +121,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: orderError.message }, { status: 500 });
     }
 
+    const updatedTotal = (dukandar.total_points || 0) + points_awarded;
+
     return NextResponse.json({
       success: true,
       order: {
         ...order,
         dukandars: dukandar
       },
-      new_total: dukandar.total_points || 0
+      new_total: updatedTotal
     });
   } catch (error: any) {
     console.error('Unhandled Dukandar Order Error:', error);
