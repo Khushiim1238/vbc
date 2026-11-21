@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { 
-  CheckCircle, Clock, Loader2, XCircle, CheckSquare, Trophy, 
-  Package, Users, LayoutDashboard, ListChecks, Search, 
+import {
+  CheckCircle, Clock, Loader2, XCircle, CheckSquare, Trophy,
+  Package, Users, LayoutDashboard, ListChecks, Search,
   Phone, MessageCircle, Plus, Edit2, Trash2, Store
 } from "lucide-react";
 import { toast } from "sonner";
@@ -422,11 +422,10 @@ export default function DukandarAdmin() {
         <button
           type="button"
           onClick={() => setActiveTab("approvals")}
-          className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "approvals"
-              ? "bg-white text-blue-900 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
+          className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === "approvals"
+            ? "bg-white text-blue-900 shadow-sm"
+            : "text-slate-600 hover:text-slate-900"
+            }`}
         >
           <ListChecks className="w-3.5 h-3.5 shrink-0 text-blue-600" />
           <span>Approvals</span>
@@ -439,11 +438,10 @@ export default function DukandarAdmin() {
         <button
           type="button"
           onClick={() => setActiveTab("dashboard")}
-          className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "dashboard"
-              ? "bg-white text-blue-900 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
+          className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === "dashboard"
+            ? "bg-white text-blue-900 shadow-sm"
+            : "text-slate-600 hover:text-slate-900"
+            }`}
         >
           <LayoutDashboard className="w-3.5 h-3.5 shrink-0 text-slate-500" />
           <span>Dashboard</span>
@@ -451,11 +449,10 @@ export default function DukandarAdmin() {
         <button
           type="button"
           onClick={() => setActiveTab("directory")}
-          className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "directory"
-              ? "bg-white text-blue-900 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
+          className={`flex-1 sm:flex-none py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === "directory"
+            ? "bg-white text-blue-900 shadow-sm"
+            : "text-slate-600 hover:text-slate-900"
+            }`}
         >
           <Search className="w-3.5 h-3.5 shrink-0 text-slate-500" />
           <span>Directory</span>
@@ -549,11 +546,10 @@ export default function DukandarAdmin() {
                 return (
                   <div
                     key={order.id}
-                    className={`bg-white p-3.5 rounded-2xl border transition-all shadow-xs flex flex-col gap-2.5 ${
-                      isSelected
-                        ? "border-blue-500 bg-blue-50/20 ring-1 ring-blue-500/20"
-                        : "border-slate-200/90 hover:border-slate-300"
-                    }`}
+                    className={`bg-white p-3.5 rounded-2xl border transition-all shadow-xs flex flex-col gap-2.5 ${isSelected
+                      ? "border-blue-500 bg-blue-50/20 ring-1 ring-blue-500/20"
+                      : "border-slate-200/90 hover:border-slate-300"
+                      }`}
                   >
                     {/* Header: Checkbox + Dukandar + Points Badge */}
                     <div className="flex items-start gap-2.5">
@@ -590,8 +586,6 @@ export default function DukandarAdmin() {
                           order.bags_ordered > 0 ? `${order.bags_ordered} Bags Cement` : null,
                           order.sariya_ordered > 0 ? `₹${order.sariya_ordered.toLocaleString('en-IN')} Sariya` : null,
                           order.pole_ordered > 0 ? `${order.pole_ordered} Poles` : null,
-                          (order.cover_block_ordered || 0) > 0 ? `₹${(order.cover_block_ordered || 0).toLocaleString('en-IN')} Cover Block` : null,
-                          (order.binding_wire_ordered || 0) > 0 ? `₹${(order.binding_wire_ordered || 0).toLocaleString('en-IN')} Binding Wire` : null,
                           order.tile_ordered > 0 ? `₹${order.tile_ordered.toLocaleString('en-IN')} Others` : null,
                         ].filter(Boolean).join(" • ") || `${order.bags_ordered || 0} Bags Cement`}
                       </span>
@@ -724,9 +718,8 @@ export default function DukandarAdmin() {
                     className="p-3 bg-slate-50 rounded-xl flex items-center justify-between"
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black ${
-                        index === 0 ? 'bg-amber-400 text-white' : index === 1 ? 'bg-slate-300 text-slate-700' : index === 2 ? 'bg-amber-700 text-white' : 'bg-slate-200 text-slate-600'
-                      }`}>
+                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black ${index === 0 ? 'bg-amber-400 text-white' : index === 1 ? 'bg-slate-300 text-slate-700' : index === 2 ? 'bg-amber-700 text-white' : 'bg-slate-200 text-slate-600'
+                        }`}>
                         #{index + 1}
                       </span>
                       <div>
@@ -765,8 +758,6 @@ export default function DukandarAdmin() {
                             o.bags_ordered > 0 ? `${o.bags_ordered} Bags Cement` : null,
                             o.sariya_ordered > 0 ? `₹${o.sariya_ordered.toLocaleString('en-IN')} Sariya` : null,
                             o.pole_ordered > 0 ? `${o.pole_ordered} Poles` : null,
-                            (o.cover_block_ordered || 0) > 0 ? `₹${(o.cover_block_ordered || 0).toLocaleString('en-IN')} Cover Block` : null,
-                            (o.binding_wire_ordered || 0) > 0 ? `₹${(o.binding_wire_ordered || 0).toLocaleString('en-IN')} Binding Wire` : null,
                             o.tile_ordered > 0 ? `₹${o.tile_ordered.toLocaleString('en-IN')} Others` : null,
                           ].filter(Boolean).join(" • ") || `${o.bags_ordered || 0} Bags Cement`} • {new Date(o.order_time).toLocaleDateString("en-IN")}
                         </p>
@@ -955,8 +946,6 @@ export default function DukandarAdmin() {
                             h.bags_ordered > 0 ? `Cement: ${h.bags_ordered} Bags` : null,
                             h.sariya_ordered > 0 ? `Sariya: ₹${h.sariya_ordered.toLocaleString('en-IN')}` : null,
                             h.pole_ordered > 0 ? `Pole: ${h.pole_ordered} Pcs` : null,
-                            (h.cover_block_ordered || 0) > 0 ? `Cover Block: ₹${(h.cover_block_ordered || 0).toLocaleString('en-IN')}` : null,
-                            (h.binding_wire_ordered || 0) > 0 ? `Binding Wire: ₹${(h.binding_wire_ordered || 0).toLocaleString('en-IN')}` : null,
                             h.tile_ordered > 0 ? `Others: ₹${h.tile_ordered.toLocaleString('en-IN')}` : null,
                           ].filter(Boolean).join(" • ") || `Cement: ${h.bags_ordered || 0} Bags`}
                         </p>
@@ -969,11 +958,10 @@ export default function DukandarAdmin() {
                       </div>
                       <div className="flex items-center gap-3">
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded font-semibold ${
-                            h.status === "approved"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-amber-100 text-amber-800"
-                          }`}
+                          className={`text-[10px] px-2 py-0.5 rounded font-semibold ${h.status === "approved"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-amber-100 text-amber-800"
+                            }`}
                         >
                           {h.status === "approved" ? "Approved" : "Pending"}
                         </span>

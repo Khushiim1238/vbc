@@ -384,6 +384,35 @@ export default function DukandarOrderEntry() {
     }
   };
 
+  const handleSendSuccessWhatsApp = () => {
+    if (!success) return;
+    const itemsList: string[] = [];
+    if (success.bags > 0) itemsList.push(`सीमेंट: ${success.bags} बैग`);
+    if (success.sariya > 0) itemsList.push(`सरिया: ₹${success.sariya.toLocaleString('en-IN')}`);
+    if (success.pole > 0) itemsList.push(`पोल: ${success.pole} नग`);
+    if (success.coverBlock > 0) itemsList.push(`कवर ब्लॉक: ₹${success.coverBlock.toLocaleString('en-IN')}`);
+    if (success.bindingWire > 0) itemsList.push(`बाइंडिंग वायर: ₹${success.bindingWire.toLocaleString('en-IN')}`);
+    if (success.tile > 0) itemsList.push(`अन्य सामग्री (टाइल्स, कवर ब्लॉक): ₹${success.tile.toLocaleString('en-IN')}`);
+
+    const itemsText = itemsList.length > 0 ? itemsList.join(", ") : `सीमेंट: ${success.bags || 0} बैग`;
+
+    let msg = `नमस्ते ${success.customerName} जी! 🙏\n\n`;
+    msg += `✅ *ऑर्डर स्वीकृत:* ${itemsText}\n`;
+    msg += `वर्धमान बिल्डिंग सल्यूशन को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n\n`;
+    msg += `⭐ आपको मिले हैं: *+${success.points} पॉइंट्स*\n`;
+    msg += `🏆 आपका कुल पॉइंट्स है: *${success.totalPoints ?? success.points} पॉइंट्स*\n\n`;
+    msg += `दीपावली धमाका स्कीम में  मोटरसाइकिल , ए सी,फ्रिज ,कूलर आदि आकर्षक इनाम जीतने के लिए अपने प्वाइंट बढ़ाते रहिए!हार्दिक बधाई व शुभकामनाएं\n`;
+    msg += `— वर्धमान ग्रुप, टोंक`;
+
+    let phone = success.customerPhone || '';
+    if (phone.length === 10) phone = '91' + phone;
+
+    const url = phone 
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  };
+
   // Submit Order
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -761,33 +790,7 @@ export default function DukandarOrderEntry() {
                   {/* Send WhatsApp Message Button */}
                   <button
                     type="button"
-                    onClick={() => {
-                      const itemsList: string[] = [];
-                      if (success.bags > 0) itemsList.push(`सीमेंट: ${success.bags} बैग`);
-                      if (success.sariya > 0) itemsList.push(`सरिया: ₹${success.sariya.toLocaleString('en-IN')}`);
-                      if (success.pole > 0) itemsList.push(`पोल: ${success.pole} नग`);
-                      if (success.coverBlock > 0) itemsList.push(`कवर ब्लॉक: ₹${success.coverBlock.toLocaleString('en-IN')}`);
-                      if (success.bindingWire > 0) itemsList.push(`बाइंडिंग वायर: ₹${success.bindingWire.toLocaleString('en-IN')}`);
-                      if (success.tile > 0) itemsList.push(`अन्य सामग्री (टाइल्स, कवर ब्लॉक): ₹${success.tile.toLocaleString('en-IN')}`);
-
-                      const itemsText = itemsList.length > 0 ? itemsList.join(", ") : `सीमेंट: ${success.bags || 0} बैग`;
-
-                      let msg = `नमस्ते ${success.customerName} जी! 🙏\n\n`;
-                      msg += `✅ *ऑर्डर स्वीकृत:* ${itemsText}\n`;
-                      msg += `वर्धमान बिल्डिंग सल्यूशन को आपके द्वारा दिए गए सहयोग के लिए धन्यवाद।\n\n\n`;
-                      msg += `⭐ आपको मिले हैं: *+${success.points} पॉइंट्स*\n`;
-                      msg += `🏆 आपका कुल पॉइंट्स है: *${success.totalPoints ?? success.points} पॉइंट्स*\n\n`;
-                      msg += `दीपावली धमाका स्कीम में  मोटरसाइकिल , ए सी,फ्रिज ,कूलर आदि आकर्षक इनाम जीतने के लिए अपने प्वाइंट बढ़ाते रहिए!हार्दिक बधाई व शुभकामनाएं\n`;
-                      msg += `— वर्धमान ग्रुप, टोंक`;
-
-                      let phone = success.customerPhone || '';
-                      if (phone.length === 10) phone = '91' + phone;
-
-                      const url = phone 
-                        ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
-                        : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-                      window.open(url, '_blank');
-                    }}
+                    onClick={handleSendSuccessWhatsApp}
                     className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/25 transition-all text-sm flex items-center justify-center gap-2 mb-2.5 cursor-pointer"
                   >
                     <MessageCircle className="w-4 h-4 shrink-0" />
