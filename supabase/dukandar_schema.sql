@@ -12,13 +12,15 @@ CREATE TABLE IF NOT EXISTS public.dukandars (
     registered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. Dukandar Orders Table (Cement: 1 bag = 1 pt; Sariya: ₹1,000 = 1 pt; Pole: 1 pole = 1 pt; Others: ₹100 = 1 pt)
+-- 2. Dukandar Orders Table (Cement: 1 bag = 1 pt; Sariya: ₹1,000 = 1 pt; Pole: 1 pole = 1 pt; Cover Block: ₹400 = 1 pt; Binding Wire: ₹400 = 1 pt; Others: ₹100 = 1 pt)
 CREATE TABLE IF NOT EXISTS public.dukandar_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     dukandar_id UUID NOT NULL REFERENCES public.dukandars(id) ON DELETE CASCADE,
     bags_ordered INTEGER NOT NULL DEFAULT 0,
     sariya_ordered INTEGER NOT NULL DEFAULT 0,
     pole_ordered INTEGER NOT NULL DEFAULT 0,
+    cover_block_ordered INTEGER NOT NULL DEFAULT 0,
+    binding_wire_ordered INTEGER NOT NULL DEFAULT 0,
     tile_ordered INTEGER NOT NULL DEFAULT 0,
     status TEXT DEFAULT 'pending',
     order_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -32,6 +34,8 @@ CREATE TABLE IF NOT EXISTS public.dukandar_orders (
 -- Migration helpers if table already exists:
 ALTER TABLE public.dukandar_orders ADD COLUMN IF NOT EXISTS sariya_ordered INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE public.dukandar_orders ADD COLUMN IF NOT EXISTS pole_ordered INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.dukandar_orders ADD COLUMN IF NOT EXISTS cover_block_ordered INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.dukandar_orders ADD COLUMN IF NOT EXISTS binding_wire_ordered INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE public.dukandar_orders ADD COLUMN IF NOT EXISTS tile_ordered INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE public.dukandar_orders ADD COLUMN IF NOT EXISTS coupon_number INTEGER;
 

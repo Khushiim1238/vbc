@@ -24,6 +24,8 @@ interface DukandarTransaction {
   bags_ordered: number;
   sariya_ordered: number;
   pole_ordered: number;
+  cover_block_ordered?: number;
+  binding_wire_ordered?: number;
   tile_ordered: number;
   order_time: string;
   status: string;
@@ -50,6 +52,8 @@ export default function DukandarOrderEntry() {
     bags: number;
     sariya: number;
     pole: number;
+    coverBlock: number;
+    bindingWire: number;
     tile: number;
     points: number;
   } | null>(null);
@@ -66,6 +70,8 @@ export default function DukandarOrderEntry() {
   const [bags, setBags] = useState<number | "">("");
   const [sariya, setSariya] = useState<number | "">("");
   const [pole, setPole] = useState<number | "">("");
+  const [coverBlock, setCoverBlock] = useState<number | "">("");
+  const [bindingWire, setBindingWire] = useState<number | "">("");
   const [tile, setTile] = useState<number | "">("");
   const [enteredBy, setEnteredBy] = useState("Staff");
   const [staffNameInput, setStaffNameInput] = useState("");
@@ -337,7 +343,9 @@ export default function DukandarOrderEntry() {
     if (order.bags_ordered > 0) itemsList.push(`सीमेंट: ${order.bags_ordered} बैग`);
     if (order.sariya_ordered > 0) itemsList.push(`सरिया: ₹${order.sariya_ordered.toLocaleString('en-IN')}`);
     if (order.pole_ordered > 0) itemsList.push(`पोल: ${order.pole_ordered} नग`);
-    if (order.tile_ordered > 0) itemsList.push(`अन्य सामग्री (टाइल्स, कवर ब्लॉक, सीमेंट ब्लॉक): ₹${order.tile_ordered.toLocaleString('en-IN')}`);
+    if ((order.cover_block_ordered || 0) > 0) itemsList.push(`कवर ब्लॉक: ₹${(order.cover_block_ordered || 0).toLocaleString('en-IN')}`);
+    if ((order.binding_wire_ordered || 0) > 0) itemsList.push(`बाइंडिंग वायर: ₹${(order.binding_wire_ordered || 0).toLocaleString('en-IN')}`);
+    if (order.tile_ordered > 0) itemsList.push(`अन्य सामग्री (टाइल्स, सीमेंट ब्लॉक): ₹${order.tile_ordered.toLocaleString('en-IN')}`);
 
     const itemsText = itemsList.length > 0 ? itemsList.join(", ") : `सीमेंट: ${order.bags_ordered || 0} बैग`;
 
@@ -398,10 +406,19 @@ export default function DukandarOrderEntry() {
     const submittedBags = Number(bags) || 0;
     const submittedSariya = Number(sariya) || 0;
     const submittedPole = Number(pole) || 0;
+    const submittedCoverBlock = Number(coverBlock) || 0;
+    const submittedBindingWire = Number(bindingWire) || 0;
     const submittedTile = Number(tile) || 0;
 
-    if (submittedBags <= 0 && submittedSariya <= 0 && submittedPole <= 0 && submittedTile <= 0) {
-      toast.error("कृपया कम से कम एक सामग्री दर्ज करें (Please enter at least one item: Cement, Sariya, Pole or Tiles)");
+    if (
+      submittedBags <= 0 &&
+      submittedSariya <= 0 &&
+      submittedPole <= 0 &&
+      submittedCoverBlock <= 0 &&
+      submittedBindingWire <= 0 &&
+      submittedTile <= 0
+    ) {
+      toast.error("कृपया कम से कम एक सामग्री दर्ज करें (Please enter at least one item)");
       return;
     }
 
@@ -449,11 +466,15 @@ export default function DukandarOrderEntry() {
     // Cement: 1 bag = 1 pt
     // Sariya: 1 pt per ₹1,000 purchase
     // Pole: 1 pole = 1 pt
-    // Others (Tile, Cover Block, Cement Block): 1 pt per ₹100 purchase
+    // Cover Block: 1 pt per ₹400 purchase
+    // Binding Wire: 1 pt per ₹400 purchase
+    // Others (Tile, Cement Block): 1 pt per ₹100 purchase
     const calculatedPoints =
       submittedBags +
       Math.floor(submittedSariya / 1000) +
       submittedPole +
+      Math.floor(submittedCoverBlock / 400) +
+      Math.floor(submittedBindingWire / 400) +
       Math.floor(submittedTile / 100);
 
     try {
@@ -465,6 +486,8 @@ export default function DukandarOrderEntry() {
           bags_ordered: submittedBags,
           sariya_ordered: submittedSariya,
           pole_ordered: submittedPole,
+          cover_block_ordered: submittedCoverBlock,
+          binding_wire_ordered: submittedBindingWire,
           tile_ordered: submittedTile,
           entered_by: enteredBy || 'Staff',
         }),
@@ -477,6 +500,8 @@ export default function DukandarOrderEntry() {
           bags: submittedBags,
           sariya: submittedSariya,
           pole: submittedPole,
+          coverBlock: submittedCoverBlock,
+          bindingWire: submittedBindingWire,
           tile: submittedTile,
           points: data.order?.points_awarded ?? calculatedPoints,
         });
@@ -487,6 +512,8 @@ export default function DukandarOrderEntry() {
         setBags("");
         setSariya("");
         setPole("");
+        setCoverBlock("");
+        setBindingWire("");
         setTile("");
         setSelectedDukandar("");
         setSelectedDukandarName("");
@@ -711,7 +738,9 @@ export default function DukandarOrderEntry() {
                         success.bags > 0 ? `${success.bags} Bags Cement` : null,
                         success.sariya > 0 ? `₹${success.sariya.toLocaleString('en-IN')} Sariya` : null,
                         success.pole > 0 ? `${success.pole} Poles` : null,
-                        success.tile > 0 ? `₹${success.tile.toLocaleString('en-IN')} Others (Tile/Cover Block/Cement Block)` : null,
+                        success.coverBlock > 0 ? `₹${success.coverBlock.toLocaleString('en-IN')} Cover Block` : null,
+                        success.bindingWire > 0 ? `₹${success.bindingWire.toLocaleString('en-IN')} Binding Wire` : null,
+                        success.tile > 0 ? `₹${success.tile.toLocaleString('en-IN')} Others (Tile/Cement Block)` : null,
                       ].filter(Boolean).join(" • ")}
                     </p>
                   </div>
@@ -952,16 +981,16 @@ export default function DukandarOrderEntry() {
                   )}
                 </div>
 
-                {/* 3 Building Material Fields (Sariya, Pole, Others) */}
+                {/* Building Material Fields (Sariya, Pole, Cover Block, Binding Wire, Others) */}
                 <div className="pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-black text-slate-800 uppercase tracking-wider">
                       Other Materials
                     </p>
-                    <span className="text-[10px] text-slate-400 font-semibold">Pole: 1 Pt/Pc • Others: 1 Pt/₹100</span>
+                    <span className="text-[10px] text-slate-400 font-semibold">Pole: 1/Pt • Cover/Wire: ₹400/Pt • Others: ₹100/Pt</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
                     {/* Sariya */}
                     <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -1021,11 +1050,75 @@ export default function DukandarOrderEntry() {
                       )}
                     </div>
 
-                    {/* Others (Tile, Cover Block, Cement Block) */}
+                    {/* Cover Block */}
                     <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-bold text-slate-700 truncate" title="Others (Tile, Cover Block, Cement Block)">
-                          Others (Tile, Cover Block, Cement Block)
+                        <label className="block text-xs font-bold text-slate-700 truncate" title="Cover Block (₹)">
+                          Cover Block (₹)
+                        </label>
+                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
+                          ₹400 = 1 Pt
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
+                          ₹
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={coverBlock}
+                          onChange={(e) => setCoverBlock(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
+                          className="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-mono"
+                        />
+                      </div>
+                      {Number(coverBlock) > 0 ? (
+                        <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
+                          ₹{Number(coverBlock).toLocaleString('en-IN')} → +{Math.floor(Number(coverBlock) / 400)} pts
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹400 = 1 pt</p>
+                      )}
+                    </div>
+
+                    {/* Binding Wire */}
+                    <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700 truncate" title="Binding Wire (₹)">
+                          Binding Wire (₹)
+                        </label>
+                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
+                          ₹400 = 1 Pt
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
+                          ₹
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={bindingWire}
+                          onChange={(e) => setBindingWire(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
+                          className="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-mono"
+                        />
+                      </div>
+                      {Number(bindingWire) > 0 ? (
+                        <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
+                          ₹{Number(bindingWire).toLocaleString('en-IN')} → +{Math.floor(Number(bindingWire) / 400)} pts
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹400 = 1 pt</p>
+                      )}
+                    </div>
+
+                    {/* Others (Tile, Cement Block) */}
+                    <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700 truncate" title="Others (Tile, Cement Block)">
+                          Others (Tile, Block)
                         </label>
                         <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
                           ₹100 = 1 Pt
@@ -1056,7 +1149,7 @@ export default function DukandarOrderEntry() {
                 </div>
 
                 {/* Live Point Award Banner */}
-                {(Number(bags) > 0 || Number(sariya) > 0 || Number(pole) > 0 || Number(tile) > 0) && (
+                {(Number(bags) > 0 || Number(sariya) > 0 || Number(pole) > 0 || Number(coverBlock) > 0 || Number(bindingWire) > 0 || Number(tile) > 0) && (
                   <div className="p-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white rounded-2xl flex items-center justify-between shadow-lg shadow-blue-600/20 animate-in fade-in duration-150">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-white/20 text-white flex items-center justify-center font-black text-base backdrop-blur-sm">
@@ -1065,24 +1158,26 @@ export default function DukandarOrderEntry() {
                       <div>
                         <p className="text-[11px] font-bold text-blue-100 uppercase tracking-wider">Points Preview</p>
                         <p className="text-2xl font-black leading-tight text-white">
-                          +{((Number(bags) || 0) + Math.floor((Number(sariya) || 0) / 1000) + (Number(pole) || 0) + Math.floor((Number(tile) || 0) / 100))} Points
+                          +{((Number(bags) || 0) + Math.floor((Number(sariya) || 0) / 1000) + (Number(pole) || 0) + Math.floor((Number(coverBlock) || 0) / 400) + Math.floor((Number(bindingWire) || 0) / 400) + Math.floor((Number(tile) || 0) / 100))} Points
                         </p>
                         <p className="text-[11px] text-blue-100 mt-0.5">
                           {[
                             Number(bags) > 0 ? `${Number(bags)} Bags Cement` : null,
                             Number(sariya) >= 1000 ? `₹${Number(sariya).toLocaleString('en-IN')} Sariya` : null,
                             Number(pole) > 0 ? `${Number(pole)} Poles` : null,
+                            Number(coverBlock) >= 400 ? `₹${Number(coverBlock).toLocaleString('en-IN')} Cover Block` : null,
+                            Number(bindingWire) >= 400 ? `₹${Number(bindingWire).toLocaleString('en-IN')} Binding Wire` : null,
                             Number(tile) >= 100 ? `₹${Number(tile).toLocaleString('en-IN')} Others` : null,
-                          ].filter(Boolean).join(" + ") || "Need min 1 bag, 1 pole, or ₹100 others"}
+                          ].filter(Boolean).join(" + ") || "Threshold for points not yet reached"}
                         </p>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
                       <span className="text-[10px] font-bold text-white bg-white/20 px-2.5 py-1 rounded-lg block backdrop-blur-sm">
-                        1 Pole = 1 Pt
+                        Cover/Wire: ₹400 = 1 Pt
                       </span>
                       <span className="text-[10px] font-bold text-white bg-white/20 px-2.5 py-1 rounded-lg block mt-1 backdrop-blur-sm">
-                        ₹100 = 1 Pt
+                        Pole: 1 = 1 Pt • Others: ₹100
                       </span>
                     </div>
                   </div>
@@ -1182,6 +1277,8 @@ export default function DukandarOrderEntry() {
                               t.bags_ordered > 0 ? `${t.bags_ordered} Bags Cement` : null,
                               t.sariya_ordered > 0 ? `₹${t.sariya_ordered.toLocaleString('en-IN')} Sariya` : null,
                               t.pole_ordered > 0 ? `${t.pole_ordered} Poles` : null,
+                              (t.cover_block_ordered || 0) > 0 ? `₹${(t.cover_block_ordered || 0).toLocaleString('en-IN')} Cover Block` : null,
+                              (t.binding_wire_ordered || 0) > 0 ? `₹${(t.binding_wire_ordered || 0).toLocaleString('en-IN')} Binding Wire` : null,
                               t.tile_ordered > 0 ? `₹${t.tile_ordered.toLocaleString('en-IN')} Others` : null,
                             ].filter(Boolean).join(" • ") || `${t.bags_ordered || 0} Bags Cement`}
                           </span>
@@ -1379,6 +1476,8 @@ export default function DukandarOrderEntry() {
                                   o.bags_ordered > 0 ? `Cement: ${o.bags_ordered} Bags` : null,
                                   o.sariya_ordered > 0 ? `Sariya: ₹${o.sariya_ordered.toLocaleString('en-IN')}` : null,
                                   o.pole_ordered > 0 ? `Pole: ${o.pole_ordered} Pcs` : null,
+                                  (o.cover_block_ordered || 0) > 0 ? `Cover Block: ₹${(o.cover_block_ordered || 0).toLocaleString('en-IN')}` : null,
+                                  (o.binding_wire_ordered || 0) > 0 ? `Binding Wire: ₹${(o.binding_wire_ordered || 0).toLocaleString('en-IN')}` : null,
                                   o.tile_ordered > 0 ? `Others: ₹${o.tile_ordered.toLocaleString('en-IN')}` : null,
                                 ].filter(Boolean).join(" • ") || `Cement: ${o.bags_ordered || 0} Bags`}
                               </span>

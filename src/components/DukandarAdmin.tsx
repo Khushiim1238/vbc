@@ -22,6 +22,8 @@ interface DukandarPendingOrder {
   bags_ordered: number;
   sariya_ordered: number;
   pole_ordered: number;
+  cover_block_ordered?: number;
+  binding_wire_ordered?: number;
   tile_ordered: number;
   order_time: string;
   entered_by: string;
@@ -37,6 +39,8 @@ interface DukandarOrder {
   bags_ordered: number;
   sariya_ordered: number;
   pole_ordered: number;
+  cover_block_ordered?: number;
+  binding_wire_ordered?: number;
   tile_ordered: number;
   order_time: string;
   status: string;
@@ -157,6 +161,8 @@ export default function DukandarAdmin() {
     bags: number;
     sariya?: number;
     pole?: number;
+    cover_block?: number;
+    binding_wire?: number;
     tile?: number;
     pointsAwarded: number;
     totalPoints: number;
@@ -166,7 +172,9 @@ export default function DukandarAdmin() {
     if (w.bags > 0) itemsList.push(`सीमेंट: ${w.bags} बैग`);
     if ((w.sariya || 0) > 0) itemsList.push(`सरिया: ₹${(w.sariya || 0).toLocaleString('en-IN')}`);
     if ((w.pole || 0) > 0) itemsList.push(`पोल: ${w.pole} नग`);
-    if ((w.tile || 0) > 0) itemsList.push(`अन्य सामग्री (टाइल्स, कवर ब्लॉक, सीमेंट ब्लॉक): ₹${(w.tile || 0).toLocaleString('en-IN')}`);
+    if ((w.cover_block || 0) > 0) itemsList.push(`कवर ब्लॉक: ₹${(w.cover_block || 0).toLocaleString('en-IN')}`);
+    if ((w.binding_wire || 0) > 0) itemsList.push(`बाइंडिंग वायर: ₹${(w.binding_wire || 0).toLocaleString('en-IN')}`);
+    if ((w.tile || 0) > 0) itemsList.push(`अन्य सामग्री (टाइल्स, सीमेंट ब्लॉक): ₹${(w.tile || 0).toLocaleString('en-IN')}`);
 
     const itemsText = itemsList.length > 0 ? itemsList.join(", ") : `सीमेंट: ${w.bags || 0} बैग`;
 
@@ -582,6 +590,8 @@ export default function DukandarAdmin() {
                           order.bags_ordered > 0 ? `${order.bags_ordered} Bags Cement` : null,
                           order.sariya_ordered > 0 ? `₹${order.sariya_ordered.toLocaleString('en-IN')} Sariya` : null,
                           order.pole_ordered > 0 ? `${order.pole_ordered} Poles` : null,
+                          (order.cover_block_ordered || 0) > 0 ? `₹${(order.cover_block_ordered || 0).toLocaleString('en-IN')} Cover Block` : null,
+                          (order.binding_wire_ordered || 0) > 0 ? `₹${(order.binding_wire_ordered || 0).toLocaleString('en-IN')} Binding Wire` : null,
                           order.tile_ordered > 0 ? `₹${order.tile_ordered.toLocaleString('en-IN')} Others` : null,
                         ].filter(Boolean).join(" • ") || `${order.bags_ordered || 0} Bags Cement`}
                       </span>
@@ -755,6 +765,8 @@ export default function DukandarAdmin() {
                             o.bags_ordered > 0 ? `${o.bags_ordered} Bags Cement` : null,
                             o.sariya_ordered > 0 ? `₹${o.sariya_ordered.toLocaleString('en-IN')} Sariya` : null,
                             o.pole_ordered > 0 ? `${o.pole_ordered} Poles` : null,
+                            (o.cover_block_ordered || 0) > 0 ? `₹${(o.cover_block_ordered || 0).toLocaleString('en-IN')} Cover Block` : null,
+                            (o.binding_wire_ordered || 0) > 0 ? `₹${(o.binding_wire_ordered || 0).toLocaleString('en-IN')} Binding Wire` : null,
                             o.tile_ordered > 0 ? `₹${o.tile_ordered.toLocaleString('en-IN')} Others` : null,
                           ].filter(Boolean).join(" • ") || `${o.bags_ordered || 0} Bags Cement`} • {new Date(o.order_time).toLocaleDateString("en-IN")}
                         </p>
@@ -943,6 +955,8 @@ export default function DukandarAdmin() {
                             h.bags_ordered > 0 ? `Cement: ${h.bags_ordered} Bags` : null,
                             h.sariya_ordered > 0 ? `Sariya: ₹${h.sariya_ordered.toLocaleString('en-IN')}` : null,
                             h.pole_ordered > 0 ? `Pole: ${h.pole_ordered} Pcs` : null,
+                            (h.cover_block_ordered || 0) > 0 ? `Cover Block: ₹${(h.cover_block_ordered || 0).toLocaleString('en-IN')}` : null,
+                            (h.binding_wire_ordered || 0) > 0 ? `Binding Wire: ₹${(h.binding_wire_ordered || 0).toLocaleString('en-IN')}` : null,
                             h.tile_ordered > 0 ? `Others: ₹${h.tile_ordered.toLocaleString('en-IN')}` : null,
                           ].filter(Boolean).join(" • ") || `Cement: ${h.bags_ordered || 0} Bags`}
                         </p>

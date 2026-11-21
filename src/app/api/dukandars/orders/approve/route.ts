@@ -98,6 +98,8 @@ export async function POST(request: Request) {
         bags: order.bags_ordered,
         sariya: order.sariya_ordered || 0,
         pole: order.pole_ordered || 0,
+        cover_block: order.cover_block_ordered || 0,
+        binding_wire: order.binding_wire_ordered || 0,
         tile: order.tile_ordered || 0,
         pointsAwarded: points_awarded,
         totalPoints: balance_after,
