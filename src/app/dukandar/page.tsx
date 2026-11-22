@@ -861,27 +861,35 @@ export default function DukandarOrderEntry() {
                   <div className="space-y-3">
                     {/* Selected Banner */}
                     {selectedDukandar ? (
-                      <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50/60 border border-blue-200 rounded-2xl flex items-center justify-between animate-in fade-in duration-150">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-md">
-                            {selectedDukandarName.slice(0, 2).toUpperCase()}
+                      <div className="p-3.5 sm:p-4 bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-blue-50/90 border border-blue-200/80 rounded-2xl flex items-center justify-between gap-3 shadow-2xs animate-in fade-in duration-150">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="relative shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                              {selectedDukandarName.slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-black border-2 border-white shadow-xs">
+                              ✓
+                            </span>
                           </div>
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <p className="font-black text-slate-900 text-base leading-tight">{selectedDukandarName}</p>
-                              <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                ✓ Selected
+                              <p className="font-bold text-slate-900 text-sm sm:text-base leading-snug truncate" title={selectedDukandarName}>
+                                {selectedDukandarName}
+                              </p>
+                              <span className="hidden sm:inline-block bg-blue-100/90 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
+                                Selected
                               </span>
                             </div>
-                            <p className="text-xs text-blue-700 font-semibold mt-1 flex items-center gap-2">
+                            <div className="text-xs text-slate-600 font-medium mt-0.5 flex items-center gap-2 flex-wrap">
                               <span>📞 {dukandars.find(d => d.id === selectedDukandar)?.phone}</span>
-                              <span>•</span>
-                              <span className="bg-white/80 px-2 py-0.5 rounded-md border border-blue-200/80 text-slate-700">
-                                Total Points: <strong>{dukandars.find(d => d.id === selectedDukandar)?.total_points || 0} ★</strong>
+                              <span className="text-slate-300">•</span>
+                              <span className="font-bold text-blue-700">
+                                {dukandars.find(d => d.id === selectedDukandar)?.total_points || 0} ★ Points
                               </span>
-                            </p>
+                            </div>
                           </div>
                         </div>
+
                         <button
                           type="button"
                           onClick={() => {
@@ -889,7 +897,7 @@ export default function DukandarOrderEntry() {
                             setSelectedDukandarName("");
                             setSearchQuery("");
                           }}
-                          className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-white px-3 py-2 rounded-xl border border-blue-200 shadow-sm active:scale-95 transition-all shrink-0 cursor-pointer"
+                          className="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold rounded-xl border border-blue-200/80 shadow-2xs active:scale-95 transition-all shrink-0 cursor-pointer"
                         >
                           Change
                         </button>
