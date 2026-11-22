@@ -497,15 +497,15 @@ export default function DukandarOrderEntry() {
     // Cement: 1 bag = 1 pt
     // Sariya: 1 pt per ₹1,000 purchase
     // Pole: 1 pole = 1 pt
-    // Cover Block: 1 pt per ₹400 purchase
-    // Binding Wire: 1 pt per ₹400 purchase
+    // Cover Block: 1 pt per ₹100 purchase
+    // Binding Wire: 1 pt per ₹100 purchase
     // Others (Tile, Cement Block): 1 pt per ₹100 purchase
     const calculatedPoints =
       submittedBags +
       Math.floor(submittedSariya / 1000) +
       submittedPole +
-      Math.floor(submittedCoverBlock / 400) +
-      Math.floor(submittedBindingWire / 400) +
+      Math.floor(submittedCoverBlock / 100) +
+      Math.floor(submittedBindingWire / 100) +
       Math.floor(submittedTile / 100);
 
     try {
@@ -1035,7 +1035,7 @@ export default function DukandarOrderEntry() {
                     <p className="text-xs font-black text-slate-800 uppercase tracking-wider">
                       Other Materials
                     </p>
-                    <span className="text-[10px] text-slate-400 font-semibold">Pole: 1/Pt • Cover/Wire: ₹400/Pt • Others: ₹100/Pt</span>
+                    <span className="text-[10px] text-slate-400 font-semibold">Pole: 1/Pt • Cover/Wire/Others: ₹100/Pt</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
@@ -1105,7 +1105,7 @@ export default function DukandarOrderEntry() {
                           Cover Block (₹)
                         </label>
                         <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
-                          ₹400 = 1 Pt
+                          ₹100 = 1 Pt
                         </span>
                       </div>
                       <div className="relative">
@@ -1123,10 +1123,10 @@ export default function DukandarOrderEntry() {
                       </div>
                       {Number(coverBlock) > 0 ? (
                         <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
-                          ₹{Number(coverBlock).toLocaleString('en-IN')} → +{Math.floor(Number(coverBlock) / 400)} pts
+                          ₹{Number(coverBlock).toLocaleString('en-IN')} → +{Math.floor(Number(coverBlock) / 100)} pts
                         </p>
                       ) : (
-                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹400 = 1 pt</p>
+                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹100 = 1 pt</p>
                       )}
                     </div>
 
@@ -1137,7 +1137,7 @@ export default function DukandarOrderEntry() {
                           Binding Wire (₹)
                         </label>
                         <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
-                          ₹400 = 1 Pt
+                          ₹100 = 1 Pt
                         </span>
                       </div>
                       <div className="relative">
@@ -1155,10 +1155,10 @@ export default function DukandarOrderEntry() {
                       </div>
                       {Number(bindingWire) > 0 ? (
                         <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
-                          ₹{Number(bindingWire).toLocaleString('en-IN')} → +{Math.floor(Number(bindingWire) / 400)} pts
+                          ₹{Number(bindingWire).toLocaleString('en-IN')} → +{Math.floor(Number(bindingWire) / 100)} pts
                         </p>
                       ) : (
-                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹400 = 1 pt</p>
+                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹100 = 1 pt</p>
                       )}
                     </div>
 
@@ -1206,15 +1206,15 @@ export default function DukandarOrderEntry() {
                       <div>
                         <p className="text-[11px] font-bold text-blue-100 uppercase tracking-wider">Points Preview</p>
                         <p className="text-2xl font-black leading-tight text-white">
-                          +{((Number(bags) || 0) + Math.floor((Number(sariya) || 0) / 1000) + (Number(pole) || 0) + Math.floor((Number(coverBlock) || 0) / 400) + Math.floor((Number(bindingWire) || 0) / 400) + Math.floor((Number(tile) || 0) / 100))} Points
+                          +{((Number(bags) || 0) + Math.floor((Number(sariya) || 0) / 1000) + (Number(pole) || 0) + Math.floor((Number(coverBlock) || 0) / 100) + Math.floor((Number(bindingWire) || 0) / 100) + Math.floor((Number(tile) || 0) / 100))} Points
                         </p>
                         <p className="text-[11px] text-blue-100 mt-0.5">
                           {[
                             Number(bags) > 0 ? `${Number(bags)} Bags Cement` : null,
                             Number(sariya) >= 1000 ? `₹${Number(sariya).toLocaleString('en-IN')} Sariya` : null,
                             Number(pole) > 0 ? `${Number(pole)} Poles` : null,
-                            Number(coverBlock) >= 400 ? `₹${Number(coverBlock).toLocaleString('en-IN')} Cover Block` : null,
-                            Number(bindingWire) >= 400 ? `₹${Number(bindingWire).toLocaleString('en-IN')} Binding Wire` : null,
+                            Number(coverBlock) >= 100 ? `₹${Number(coverBlock).toLocaleString('en-IN')} Cover Block` : null,
+                            Number(bindingWire) >= 100 ? `₹${Number(bindingWire).toLocaleString('en-IN')} Binding Wire` : null,
                             Number(tile) >= 100 ? `₹${Number(tile).toLocaleString('en-IN')} Others` : null,
                           ].filter(Boolean).join(" + ") || "Threshold for points not yet reached"}
                         </p>
@@ -1222,7 +1222,7 @@ export default function DukandarOrderEntry() {
                     </div>
                     <div className="text-right shrink-0">
                       <span className="text-[10px] font-bold text-white bg-white/20 px-2.5 py-1 rounded-lg block backdrop-blur-sm">
-                        Cover/Wire: ₹400 = 1 Pt
+                        Cover/Wire: ₹100 = 1 Pt
                       </span>
                       <span className="text-[10px] font-bold text-white bg-white/20 px-2.5 py-1 rounded-lg block mt-1 backdrop-blur-sm">
                         Pole: 1 = 1 Pt • Others: ₹100

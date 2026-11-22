@@ -54,15 +54,15 @@ export async function POST(request: Request) {
     // Cement: 1 bag = 1 point
     // Sariya: 1 point per ₹1,000 purchase
     // Pole: 1 point for 1 pole (1 pole = 1 point)
-    // Cover Block: 1 point per ₹400 purchase
-    // Binding Wire: 1 point per ₹400 purchase
+    // Cover Block: 1 point per ₹100 purchase
+    // Binding Wire: 1 point per ₹100 purchase
     // Others (Tile, Cement Block): 1 point for ₹100 purchase
     const points_awarded =
       bags +
       Math.floor(sariya / 1000) +
       pole +
-      Math.floor(cover_block / 400) +
-      Math.floor(binding_wire / 400) +
+      Math.floor(cover_block / 100) +
+      Math.floor(binding_wire / 100) +
       Math.floor(tile / 100);
 
     // 1. Fetch dukandar
