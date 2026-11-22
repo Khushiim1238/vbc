@@ -967,11 +967,7 @@ export default function DukandarOrderEntry() {
                               ))
                             )}
                           </div>
-                        ) : (
-                          <p className="text-[11px] text-slate-400 mt-2 px-1 flex items-center gap-1.5">
-                            <span>💡 Type firm name (e.g. 'A') or phone number (e.g. '72') to search</span>
-                          </p>
-                        )}
+                        ) : null}
                       </div>
                     )}
                   </div>
