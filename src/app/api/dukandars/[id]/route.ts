@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
-  const role = cookieStore.get('vbc_dukandar_role')?.value || cookieStore.get('vbc_role')?.value;
+  const role = cookieStore.get('vbc_role')?.value;
   if (role !== 'admin' && role !== 'staff') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -39,7 +39,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
-  const role = cookieStore.get('vbc_dukandar_role')?.value || cookieStore.get('vbc_role')?.value;
+  const role = cookieStore.get('vbc_role')?.value;
   if (role !== 'admin' && role !== 'staff') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
