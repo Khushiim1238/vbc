@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import {
-  CheckCircle, Clock, Loader2, XCircle, CheckSquare, Trophy,
+  CheckCircle, Clock, Loader2, XCircle, X, CheckSquare, Trophy,
   Package, Users, LayoutDashboard, ListChecks, Search,
   Phone, MessageCircle, Plus, Edit2, Trash2, Store
 } from "lucide-react";
@@ -390,6 +390,29 @@ export default function DukandarAdmin() {
 
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
     window.open(url, "_blank");
+  };
+
+  const handleCallCustomer = (e: React.MouseEvent, phone: string) => {
+    e.stopPropagation();
+    let cleanPhone = phone.replace(/\D/g, "");
+    if (cleanPhone.length === 10) cleanPhone = "91" + cleanPhone;
+    window.open(`tel:+${cleanPhone}`, "_self");
+  };
+
+  const handleResendHistoryWhatsApp = (order: DukandarOrder, dukandar: Dukandar) => {
+    triggerDukandarWhatsApp({
+      name: dukandar.name,
+      phone: dukandar.phone,
+      bags: order.bags_ordered,
+      sariya: order.sariya_ordered,
+      pole: order.pole_ordered,
+      cover_block: order.cover_block_ordered,
+      binding_wire: order.binding_wire_ordered,
+      tile: order.tile_ordered,
+      pointsAwarded: order.points_awarded,
+      totalPoints: dukandar.total_points,
+      couponNumber: order.coupon_number,
+    });
   };
 
   const filteredDukandars = dukandars.filter(
@@ -800,179 +823,248 @@ export default function DukandarAdmin() {
               </button>
             </div>
 
-            {/* Dukandars Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100 uppercase text-slate-400 tracking-wider">
-                    <th className="py-3 px-3">Dukandar</th>
-                    <th className="py-3 px-3">Mobile</th>
-                    <th className="py-3 px-3 text-center">Total Points</th>
-                    <th className="py-3 px-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredDukandars.map((d) => (
-                    <tr key={d.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-3 font-bold text-slate-900 text-sm">
-                        {editingDukandarId === d.id ? (
-                          <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="p-1 border border-blue-400 rounded text-xs font-normal"
-                          />
-                        ) : (
-                          d.name
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-slate-600">
-                        {editingDukandarId === d.id ? (
-                          <input
-                            type="text"
-                            value={editPhone}
-                            onChange={(e) => setEditPhone(e.target.value)}
-                            className="p-1 border border-blue-400 rounded text-xs font-normal"
-                          />
-                        ) : (
-                          d.phone
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <span className="font-extrabold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                          {d.total_points} ★
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-right space-x-1.5">
-                        {editingDukandarId === d.id ? (
-                          <>
-                            <button
-                              onClick={handleSaveEdit}
-                              className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingDukandarId(null)}
-                              className="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => handleSelectDukandar(d)}
-                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold"
-                              title="View Passbook & Order History"
-                            >
-                              Passbook
-                            </button>
-                            <button
-                              onClick={() => handleSendStatement(d)}
-                              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold"
-                              title="Send WhatsApp Statement"
-                            >
-                              WhatsApp
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditingDukandarId(d.id);
-                                setEditName(d.name);
-                                setEditPhone(d.phone);
-                              }}
-                              className="p-1 text-slate-400 hover:text-slate-700"
-                              title="Edit Dukandar"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteDukandar(d.id, d.name)}
-                              className="p-1 text-rose-400 hover:text-rose-600"
-                              title="Delete Dukandar"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Dukandars Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredDukandars.map((d) => (
+                <div
+                  key={d.id}
+                  onClick={() => handleSelectDukandar(d)}
+                  className="p-4 rounded-2xl border border-slate-200/90 bg-white hover:bg-slate-50 hover:border-blue-300 cursor-pointer transition-all flex justify-between items-start group shadow-2xs"
+                >
+                  <div className="flex-1 min-w-0 pr-3">
+                    <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-base truncate">
+                      {d.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium mb-3 mt-0.5">
+                      {d.phone}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => handleCallCustomer(e, d.phone)}
+                        className="p-2 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 rounded-xl shadow-2xs transition-all cursor-pointer"
+                        title="Call Dukandar"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSendStatement(d);
+                        }}
+                        className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl shadow-2xs transition-all cursor-pointer"
+                        title="Send WhatsApp Statement"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-xs text-blue-600 font-semibold flex items-center gap-0.5 group-hover:underline ml-1">
+                        Passbook →
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-blue-100/90 text-blue-800 px-3 py-1.5 rounded-xl font-black text-sm border border-blue-200 shadow-2xs whitespace-nowrap">
+                    {d.total_points} ⭐
+                  </div>
+                </div>
+              ))}
+
+              {filteredDukandars.length === 0 && (
+                <div className="col-span-full text-center py-12 text-slate-400 bg-slate-50 rounded-2xl border border-slate-200/60 text-sm">
+                  No dukandars found matching your search.
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Passbook History for Selected Dukandar */}
+          {/* Passbook History Modal for Selected Dukandar */}
           {selectedDukandarDetails && (
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 animate-in fade-in duration-200">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    {selectedDukandarDetails.name}'s Passbook
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Mobile: {selectedDukandarDetails.phone} • Total Balance:{" "}
-                    <span className="font-bold text-blue-600">
-                      {selectedDukandarDetails.total_points} Points
-                    </span>
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedDukandarDetails(null)}
-                  className="text-xs text-slate-400 hover:text-slate-700"
-                >
-                  ✕ Close
-                </button>
-              </div>
-
-              {loadingHistory ? (
-                <div className="p-8 text-center text-slate-400">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-600" />
-                  Loading passbook...
-                </div>
-              ) : dukandarHistory.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-6">No order history found.</p>
-              ) : (
-                <div className="space-y-2 max-h-72 overflow-y-auto">
-                  {dukandarHistory.map((h) => (
-                    <div
-                      key={h.id}
-                      className="p-3 bg-slate-50 rounded-xl flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <p className="font-bold text-slate-800">
-                          {[
-                            h.bags_ordered > 0 ? `Cement: ${h.bags_ordered} Bags` : null,
-                            h.sariya_ordered > 0 ? `Sariya: ₹${h.sariya_ordered.toLocaleString('en-IN')}` : null,
-                            h.pole_ordered > 0 ? `Pole: ${h.pole_ordered} Pcs` : null,
-                            h.tile_ordered > 0 ? `Others: ₹${h.tile_ordered.toLocaleString('en-IN')}` : null,
-                          ].filter(Boolean).join(" • ") || `Cement: ${h.bags_ordered || 0} Bags`}
-                        </p>
-                        <p className="text-[11px] text-slate-400">
-                          {new Date(h.order_time).toLocaleString("en-IN", {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          })}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded font-semibold ${h.status === "approved"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-amber-100 text-amber-800"
-                            }`}
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
+              onClick={() => {
+                setSelectedDukandarDetails(null);
+                setEditingDukandarId(null);
+              }}
+            >
+              <div
+                className="bg-white rounded-3xl w-full max-w-2xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl border border-slate-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/70">
+                  {editingDukandarId === selectedDukandarDetails.id ? (
+                    <div className="space-y-3">
+                      <h4 className="font-bold text-slate-800 text-sm">Edit Dukandar Details</h4>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 text-sm focus:outline-none focus:border-blue-500"
+                        placeholder="Dukandar / Firm Name"
+                      />
+                      <input
+                        type="text"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:border-blue-500"
+                        placeholder="10-digit Phone Number"
+                      />
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={handleSaveEdit}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
                         >
-                          {h.status === "approved" ? "Approved" : "Pending"}
-                        </span>
-                        <span className="font-bold text-blue-600 bg-white px-2 py-0.5 rounded border border-slate-200">
-                          +{h.points_awarded} Points
-                        </span>
+                          Save Changes
+                        </button>
+                        <button
+                          onClick={() => setEditingDukandarId(null)}
+                          className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all"
+                        >
+                          Cancel
+                        </button>
                       </div>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-xl font-black text-slate-900 truncate">
+                            {selectedDukandarDetails.name}
+                          </h2>
+                          <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-xl font-black text-xs border border-blue-200">
+                            {selectedDukandarDetails.total_points} Points ⭐
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1 font-medium">
+                          Mobile: {selectedDukandarDetails.phone}
+                        </p>
+
+                        {/* Action Bar */}
+                        <div className="flex items-center gap-2 mt-3 flex-wrap">
+                          <button
+                            onClick={(e) => handleCallCustomer(e, selectedDukandarDetails.phone)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 hover:border-blue-300 rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            Call
+                          </button>
+                          <button
+                            onClick={() => handleSendStatement(selectedDukandarDetails)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            WhatsApp Statement
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingDukandarId(selectedDukandarDetails.id);
+                              setEditName(selectedDukandarDetails.name);
+                              setEditPhone(selectedDukandarDetails.phone);
+                            }}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleDeleteDukandar(selectedDukandarDetails.id, selectedDukandarDetails.name);
+                              setSelectedDukandarDetails(null);
+                            }}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedDukandarDetails(null);
+                          setEditingDukandarId(null);
+                        }}
+                        className="p-2 hover:bg-slate-200/80 rounded-full transition-colors text-slate-400 hover:text-slate-700 shrink-0 cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* Modal Scrollable Body */}
+                <div className="p-5 sm:p-6 overflow-y-auto flex-1 bg-slate-50/40">
+                  {loadingHistory ? (
+                    <div className="flex flex-col justify-center items-center py-12 text-slate-400">
+                      <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
+                      <p className="text-xs font-medium">Loading orders history...</p>
+                    </div>
+                  ) : dukandarHistory.length === 0 ? (
+                    <div className="text-center py-12 text-slate-500 bg-white rounded-2xl border border-slate-100 text-sm">
+                      No orders logged for this dukandar yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {dukandarHistory.map((h) => {
+                        const isApproved = h.status === "approved";
+                        const isCancelled = h.status === "cancelled";
+
+                        return (
+                          <div
+                            key={h.id}
+                            className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-blue-200 transition-all"
+                          >
+                            <div>
+                              <div className="text-xs text-slate-500 mb-1.5 flex items-center gap-1.5 font-medium">
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                {new Date(h.order_time).toLocaleString("en-IN", {
+                                  dateStyle: "medium",
+                                  timeStyle: "short",
+                                })}
+                                <span
+                                  className={`text-[10px] ml-1.5 px-2 py-0.5 rounded-full font-bold uppercase ${
+                                    isApproved
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : isCancelled
+                                      ? "bg-rose-100 text-rose-800"
+                                      : "bg-amber-100 text-amber-800"
+                                  }`}
+                                >
+                                  {h.status}
+                                </span>
+                              </div>
+
+                              <div className="font-semibold text-xs text-slate-700 bg-slate-50 inline-block px-3 py-1.5 rounded-xl border border-slate-100">
+                                {[
+                                  h.bags_ordered > 0 ? `${h.bags_ordered} Bags Cement` : null,
+                                  h.sariya_ordered > 0 ? `₹${h.sariya_ordered.toLocaleString("en-IN")} Sariya` : null,
+                                  h.pole_ordered > 0 ? `${h.pole_ordered} Poles` : null,
+                                  (h.cover_block_ordered || 0) > 0 ? `₹${(h.cover_block_ordered || 0).toLocaleString("en-IN")} Cover Block` : null,
+                                  (h.binding_wire_ordered || 0) > 0 ? `₹${(h.binding_wire_ordered || 0).toLocaleString("en-IN")} Binding Wire` : null,
+                                  h.tile_ordered > 0 ? `₹${h.tile_ordered.toLocaleString("en-IN")} Others` : null,
+                                ].filter(Boolean).join(" • ") || `${h.bags_ordered || 0} Bags Cement`}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
+                              <div className="bg-blue-50 border border-blue-200 px-3 py-1 rounded-xl text-center">
+                                <p className="text-[10px] font-bold text-blue-700 uppercase">Points</p>
+                                <p className="text-sm font-black text-blue-600">+{h.points_awarded}</p>
+                              </div>
+                              <button
+                                onClick={() => handleResendHistoryWhatsApp(h, selectedDukandarDetails)}
+                                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold border border-emerald-200 flex items-center gap-1.5 text-xs transition-colors cursor-pointer shadow-2xs"
+                                title="Resend WhatsApp Confirmation"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                                WhatsApp
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>
