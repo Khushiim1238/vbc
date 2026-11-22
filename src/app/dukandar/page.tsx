@@ -570,10 +570,13 @@ export default function DukandarOrderEntry() {
     }
   };
 
-  const filteredDukandars = dukandars.filter(d =>
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    d.phone.includes(searchQuery)
-  );
+  const cleanSearch = searchQuery.trim().toLowerCase();
+  const filteredDukandars = cleanSearch === ""
+    ? []
+    : dukandars.filter(d =>
+        d.name.toLowerCase().includes(cleanSearch) ||
+        d.phone.includes(searchQuery.trim())
+      ).slice(0, 10);
 
   const filteredHistoryDukandars = dukandars.filter(d =>
     d.name.toLowerCase().includes(historySearchQuery.toLowerCase()) ||
@@ -914,40 +917,53 @@ export default function DukandarOrderEntry() {
                           )}
                         </div>
 
-                        {/* Quick Selection List (Shows matches or recent dukandars) */}
-                        <div className="mt-2.5 max-h-60 overflow-y-auto border border-slate-200 rounded-2xl bg-white shadow-lg divide-y divide-slate-100">
-                          {(searchQuery ? filteredDukandars : dukandars.slice(0, 5)).length === 0 ? (
-                            <div className="p-4 text-center text-xs text-slate-500">
-                              No firm found. Click <strong>"+ Add New"</strong> above to register.
+                        {/* Dynamic Search Results List (Hidden when query is empty, shows up to 10 matching results) */}
+                        {searchQuery.trim() !== "" ? (
+                          <div className="mt-2.5 max-h-72 overflow-y-auto border border-blue-200/80 rounded-2xl bg-white shadow-xl divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-150">
+                            <div className="px-3.5 py-2 bg-slate-50 text-[11px] font-bold text-slate-500 flex items-center justify-between border-b border-slate-100">
+                              <span>Results for "{searchQuery.trim()}"</span>
+                              <span className="text-blue-600 font-extrabold">{filteredDukandars.length} Found (Max 10)</span>
                             </div>
-                          ) : (
-                            (searchQuery ? filteredDukandars : dukandars.slice(0, 5)).map((d) => (
-                              <button
-                                key={d.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedDukandar(d.id);
-                                  setSelectedDukandarName(d.name);
-                                  setSearchQuery("");
-                                }}
-                                className="w-full p-3 text-left hover:bg-blue-50/80 transition-colors flex items-center justify-between gap-3 text-xs cursor-pointer"
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs">
-                                    {d.name.slice(0, 2).toUpperCase()}
+                            {filteredDukandars.length === 0 ? (
+                              <div className="p-5 text-center text-xs text-slate-500">
+                                <p className="font-semibold text-slate-700">No firm matching "{searchQuery.trim()}"</p>
+                                <p className="mt-1 text-slate-400 text-[11px]">
+                                  Click <strong>"+ Add New"</strong> above to register a new firm.
+                                </p>
+                              </div>
+                            ) : (
+                              filteredDukandars.map((d) => (
+                                <button
+                                  key={d.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedDukandar(d.id);
+                                    setSelectedDukandarName(d.name);
+                                    setSearchQuery("");
+                                  }}
+                                  className="w-full p-3 text-left hover:bg-blue-50/80 active:bg-blue-100 transition-colors flex items-center justify-between gap-3 text-xs cursor-pointer group"
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                      {d.name.slice(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="font-bold text-slate-900 text-sm leading-tight truncate">{d.name}</p>
+                                      <p className="text-slate-500 font-medium text-[11px] mt-0.5">📞 {d.phone}</p>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <p className="font-bold text-slate-900 text-sm leading-tight">{d.name}</p>
-                                    <p className="text-slate-500 font-medium text-[11px]">{d.phone}</p>
-                                  </div>
-                                </div>
-                                <span className="font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200 shrink-0">
-                                  {d.total_points} ★
-                                </span>
-                              </button>
-                            ))
-                          )}
-                        </div>
+                                  <span className="font-bold text-blue-700 bg-blue-50 group-hover:bg-blue-100 px-2.5 py-1 rounded-full border border-blue-200 shrink-0 text-xs">
+                                    {d.total_points} ★
+                                  </span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-slate-400 mt-2 px-1 flex items-center gap-1.5">
+                            <span>💡 Type firm name (e.g. 'A') or phone number (e.g. '72') to search</span>
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
