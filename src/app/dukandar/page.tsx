@@ -1008,7 +1008,7 @@ export default function DukandarOrderEntry() {
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-900 text-sm">Order Items</h3>
-                      <p className="text-[11px] text-slate-500">Cement: 1 Bag = 1 Pt • Sariya: ₹1k = 1 Pt • Pole: 1 Pole = 1 Pt • Others: ₹100 = 1 Pt</p>
+                      <p className="text-[11px] text-slate-500">Enter order quantities or purchase amount</p>
                     </div>
                   </div>
                 </div>
@@ -1019,8 +1019,8 @@ export default function DukandarOrderEntry() {
                     <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">
                       Cement (Bags)
                     </label>
-                    <span className="text-[11px] text-blue-700 font-bold bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                      1 Bag = 1 Point
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
+                      1 Bag = 1 Pt
                     </span>
                   </div>
 
@@ -1051,15 +1051,19 @@ export default function DukandarOrderEntry() {
                     <p className="text-xs font-black text-slate-800 uppercase tracking-wider">
                       Other Materials
                     </p>
-                    <span className="text-[10px] text-slate-400 font-semibold">Pole: 1/Pt • Cover/Wire/Others: ₹100/Pt</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
                     {/* Sariya */}
                     <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Sariya (₹)
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700">
+                          Sariya (₹)
+                        </label>
+                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
+                          ₹1,000 = 1 Pt
+                        </span>
+                      </div>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 select-none">
                           ₹
