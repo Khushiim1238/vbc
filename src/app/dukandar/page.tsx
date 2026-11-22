@@ -1081,12 +1081,10 @@ export default function DukandarOrderEntry() {
                           className="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-mono"
                         />
                       </div>
-                      {Number(sariya) > 0 ? (
+                      {Number(sariya) > 0 && (
                         <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
                           ₹{Number(sariya).toLocaleString('en-IN')} → +{Math.floor(Number(sariya) / 1000)} pts
                         </p>
-                      ) : (
-                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹1,000 = 1 pt</p>
                       )}
                     </div>
 
@@ -1113,12 +1111,10 @@ export default function DukandarOrderEntry() {
                           Poles
                         </span>
                       </div>
-                      {Number(pole) > 0 ? (
+                      {Number(pole) > 0 && (
                         <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
                           {Number(pole)} Poles → +{Number(pole)} pts
                         </p>
-                      ) : (
-                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">1 Pole = 1 pt</p>
                       )}
                     </div>
 
@@ -1145,12 +1141,10 @@ export default function DukandarOrderEntry() {
                           className="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-mono"
                         />
                       </div>
-                      {Number(coverBlock) > 0 ? (
+                      {Number(coverBlock) > 0 && (
                         <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
                           ₹{Number(coverBlock).toLocaleString('en-IN')} → +{Math.floor(Number(coverBlock) / 100)} pts
                         </p>
-                      ) : (
-                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹100 = 1 pt</p>
                       )}
                     </div>
 
@@ -1177,12 +1171,10 @@ export default function DukandarOrderEntry() {
                           className="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-mono"
                         />
                       </div>
-                      {Number(bindingWire) > 0 ? (
+                      {Number(bindingWire) > 0 && (
                         <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
                           ₹{Number(bindingWire).toLocaleString('en-IN')} → +{Math.floor(Number(bindingWire) / 100)} pts
                         </p>
-                      ) : (
-                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹100 = 1 pt</p>
                       )}
                     </div>
 
@@ -1209,12 +1201,10 @@ export default function DukandarOrderEntry() {
                           className="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-all font-mono"
                         />
                       </div>
-                      {Number(tile) > 0 ? (
+                      {Number(tile) > 0 && (
                         <p className="text-[11px] text-blue-700 font-bold mt-1.5 pl-0.5">
                           ₹{Number(tile).toLocaleString('en-IN')} → +{Math.floor(Number(tile) / 100)} pts
                         </p>
-                      ) : (
-                        <p className="text-[10px] text-slate-400 mt-1 pl-0.5">₹100 = 1 pt</p>
                       )}
                     </div>
                   </div>
